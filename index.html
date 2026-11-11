@@ -519,17 +519,19 @@ woodTex.encoding=THREE.sRGBEncoding;
 const wood=new THREE.MeshStandardMaterial({map:woodTex,roughness:.42,metalness:0,envMapIntensity:.8});
 /* The hanger is fitted to each garment: its arms follow the garment's own shoulder line a little
    below the edge, so the wooden bar sits inside the shoulders and only the hook comes out of the collar. */
-const SHOULDER={tee:{d0:55,w:150,wb:150}, tank:{d0:40,w:70,wb:136}, hoodie:{d0:85,w:132,wb:138}}; // frame px from centre
-const CLEAR=13, BAR_R=.0085;
+const SHOULDER={tee:{d0:55,w:124,wb:124}, tank:{d0:40,w:70,wb:136}, hoodie:{d0:85,w:126,wb:126}}; // frame px from centre
+const CLEAR=16, BAR_R=.0075;
 const fitCache={};
-function fitHanger(type,cv,key){
+function fitHanger(type,cvs,key){
   if(fitCache[key]) return fitCache[key];
-  const W=cv.width, H=cv.height, sc=W/CW, d=cv.getContext('2d').getImageData(0,0,W,H).data;
+  // the lowest shoulder edge of front and back, left and right: the bar has to stay under all of them
+  const low=(a,b)=> isNaN(a)? b : isNaN(b)? a : Math.max(a,b);
   const top=new Float32Array(CW).fill(NaN);
-  for(let x=0;x<CW;x++){ const X=Math.min(W-1,Math.round((x+.5)*sc)); for(let Y=0;Y<H;Y++){ if(d[(Y*W+X)*4+3]>128){ top[x]=Y/sc; break; } } }
+  for(const cv of cvs){ const W=cv.width, H=cv.height, sc=W/CW, d=cv.getContext('2d').getImageData(0,0,W,H).data;
+    for(let x=0;x<CW;x++){ const X=Math.min(W-1,Math.round((x+.5)*sc)); for(let Y=0;Y<H;Y++){ if(d[(Y*W+X)*4+3]>128){ top[x]=low(top[x],Y/sc); break; } } } }
   const C=SHOULDER[type], wb=C.wb, c=new Float32Array(wb+1);
   for(let dx=0;dx<=wb;dx++){ const l=top[clamp(Math.round(255.5-dx),0,CW-1)], r=top[clamp(Math.round(255.5+dx),0,CW-1)];
-    c[dx]= isNaN(l)? r : isNaN(r)? l : (l+r)/2; }
+    c[dx]=low(l,r); }
   const sm=dx=>{ let s=0,n=0; for(let k=-6;k<=6;k++){ const v=c[clamp(dx+k,0,wb)]; if(!isNaN(v)){s+=v;n++;} } return n? s/n : NaN; };
   const y=new Float32Array(wb+1);
   for(let dx=C.d0;dx<=C.w;dx++){ const v=sm(dx); y[dx]= isNaN(v) ? (dx>C.d0? y[dx-1]+.5 : 60) : v+CLEAR; if(dx>C.d0) y[dx]=Math.max(y[dx],y[dx-1]); }
@@ -561,7 +563,7 @@ function garmentGeo(item,sign,src,key,fit){
     let h=clamp((sample(masks.soft,u,v)-.5)/.28,0,1); h=Math.sqrt(h);
     if(src){ // a real photo already has its folds: the two layers sit around the hanger and close in towards the hem
       const below=clamp((yv-fit.yc)/(CH*.9),0,1), t=.0055+.0105*Math.exp(-below*5);
-      let z=sign*(t + Math.sin(u*Math.PI)*.006*(1-v*.6))*h, Y=(CH/2-yv)*S; // front bulges forward, back bulges back
+      let z=sign*(.0007+(t + Math.sin(u*Math.PI)*.006*(1-v*.6))*h), Y=(CH/2-yv)*S; // front bulges forward, back bulges back
       if(hood){ // the hood can't stand up on a hanger: it leans back from the neck, curving a little as it goes
         const hinge=fit.at(dx)-CLEAR+6, wgt=1-clamp((Math.abs(dx)-SHOULDER.hoodie.d0)/15,0,1);
         if(yv<hinge && wgt>0){ const d=(hinge-yv)*S, th0=.95*wgt, rho=.3;
@@ -601,7 +603,7 @@ ITEMS.forEach((item,i)=>{
       bc = item.photoBack && PHOTOS[item.photoBack] ? rawTexture(PHOTOS[item.photoBack],false) : rawTexture(PHOTOS[key],true); }
     else { key='p-'+item.type; fc=photoTexture(item,PHOTOS[item.type+'Front'],false); bc=photoTexture(item,PHOTOS[item.type+'Back'],true); }
   } else { fc=paintGarment(item,false); bc=paintGarment(item,true); }
-  const fkey=key||item.type, fit=fitHanger(item.type,fc,fkey);
+  const fkey=key||item.type, fit=fitHanger(item.type,[fc,bc],fkey);
   const front=garmentGeo(item,1,key&&fc,key,fit), back=garmentGeo(item,-1,key&&fc,key,fit);
   const ft=new THREE.CanvasTexture(fc), bt=new THREE.CanvasTexture(bc);
   [ft,bt].forEach(t=>{t.encoding=THREE.sRGBEncoding; t.anisotropy=renderer.capabilities.getMaxAnisotropy();});
@@ -611,7 +613,8 @@ ITEMS.forEach((item,i)=>{
     : new THREE.MeshStandardMaterial({map,alphaTest:.5,alphaToCoverage:true,roughness:.93,metalness:0,envMapIntensity:.55,side}),U);
   // the shadow uses the garment's own cut-out (not the whole picture rectangle) and bends with it
   const mkDepth=map=> bendable(new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map,alphaTest:.5}),U);
-  const matF=mk(ft,THREE.FrontSide), matB=mk(bt,THREE.BackSide);
+  // both layers are drawn from both sides: at an angle you look into the garment, not through it
+  const matF=mk(ft,key?THREE.DoubleSide:THREE.FrontSide), matB=mk(bt,key?THREE.DoubleSide:THREE.BackSide);
   // the bar's centre hangs from the hook; the garment hangs from the bar
   const g=new THREE.Group(); g.position.y=-HOOK-.004-(CH/2-fit.yc)*S; spin.add(g);
   const bar=new THREE.Mesh(barGeo(fit,fkey),wood); bar.castShadow=true; g.add(bar);
