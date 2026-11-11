@@ -552,18 +552,38 @@ const ferrule=new THREE.CylinderGeometry(.006,.006,.018,12);
 
 /* garment meshes */
 const maskCache={};
-function garmentGeo(item,sign,src,key,fit){
+/* distance (in metres) from every point of the garment to its edge, measured where front and back photo both have cloth.
+   The two layers are shaped from it into one closed, rounded body, so the garment is whole from the side too. */
+const DW=256, DH=320, distCache={};
+function edgeDistance(key,cvs){
+  if(distCache[key]) return distCache[key];
+  const n=DW*DH, d=new Float32Array(n).fill(1e4);
+  for(const cv of cvs){ const c=document.createElement('canvas'); c.width=DW; c.height=DH; const g=c.getContext('2d'); g.drawImage(cv,0,0,DW,DH);
+    const a=g.getImageData(0,0,DW,DH).data; for(let i=0;i<n;i++) if(a[i*4+3]<128) d[i]=0; }
+  for(let x=0;x<DW;x++){ d[x]=0; d[(DH-1)*DW+x]=0; } for(let y=0;y<DH;y++){ d[y*DW]=0; d[y*DW+DW-1]=0; }
+  const R2=Math.SQRT2;
+  for(let y=1;y<DH-1;y++) for(let x=1;x<DW-1;x++){ const i=y*DW+x; d[i]=Math.min(d[i],d[i-1]+1,d[i-DW]+1,d[i-DW-1]+R2,d[i-DW+1]+R2); }
+  for(let y=DH-2;y>0;y--) for(let x=DW-2;x>0;x--){ const i=y*DW+x; d[i]=Math.min(d[i],d[i+1]+1,d[i+DW]+1,d[i+DW+1]+R2,d[i+DW-1]+R2); }
+  const px=CW*S/DW; for(let i=0;i<n;i++) d[i]*=px;
+  return distCache[key]=d;
+}
+function sampleD(arr,u,v){
+  const x=clamp(u*DW-.5,0,DW-1), y=clamp(v*DH-.5,0,DH-1), x0=x|0, y0=y|0, x1=Math.min(x0+1,DW-1), y1=Math.min(y0+1,DH-1), fx=x-x0, fy=y-y0;
+  return (arr[y0*DW+x0]*(1-fx)+arr[y0*DW+x1]*fx)*(1-fy)+(arr[y1*DW+x0]*(1-fx)+arr[y1*DW+x1]*fx)*fy;
+}
+function garmentGeo(item,sign,src,key,fit,dist){
   key=key||item.type;
   const masks=maskCache[key]||(maskCache[key]=buildMasks(item.type,src));
-  const geo=new THREE.PlaneGeometry(CW*S,CH*S,52,64);
+  const geo=new THREE.PlaneGeometry(CW*S,CH*S,64,80);
   const pos=geo.attributes.position, uv=geo.attributes.uv, T=THICK[item.type];
   const hood = src && item.type==='hoodie';
   for(let i=0;i<pos.count;i++){
     const u=uv.getX(i), v=1-uv.getY(i), yv=v*CH, dx=u*CW-255.5;
-    let h=clamp((sample(masks.soft,u,v)-.5)/.28,0,1); h=Math.sqrt(h);
-    if(src){ // a real photo already has its folds: the two layers sit around the hanger and close in towards the hem
-      const below=clamp((yv-fit.yc)/(CH*.9),0,1), t=.0055+.0105*Math.exp(-below*5);
-      let z=sign*(.0007+(t + Math.sin(u*Math.PI)*.006*(1-v*.6))*h), Y=(CH/2-yv)*S; // front bulges forward, back bulges back
+    // rounded profile: a flat seam right at the edge, then a quarter-circle up to full thickness
+    const e=clamp((sampleD(dist,u,v)-.005)/.045,0,1), h=Math.sqrt(1-(1-e)*(1-e));
+    if(src){ // a real photo already has its folds: the body is thickest around the hanger and thinner towards the hem
+      const below=clamp((yv-fit.yc)/(CH*.9),0,1), t=.013+.009*Math.exp(-below*4);
+      let z=sign*(.0007+t*h), Y=(CH/2-yv)*S;
       if(hood){ // the hood can't stand up on a hanger: it leans back from the neck, curving a little as it goes
         const hinge=fit.at(dx)-CLEAR+6, wgt=1-clamp((Math.abs(dx)-SHOULDER.hoodie.d0)/15,0,1);
         if(yv<hinge && wgt>0){ const d=(hinge-yv)*S, th0=.95*wgt, rho=.3;
@@ -604,7 +624,8 @@ ITEMS.forEach((item,i)=>{
     else { key='p-'+item.type; fc=photoTexture(item,PHOTOS[item.type+'Front'],false); bc=photoTexture(item,PHOTOS[item.type+'Back'],true); }
   } else { fc=paintGarment(item,false); bc=paintGarment(item,true); }
   const fkey=key||item.type, fit=fitHanger(item.type,[fc,bc],fkey);
-  const front=garmentGeo(item,1,key&&fc,key,fit), back=garmentGeo(item,-1,key&&fc,key,fit);
+  const dist=edgeDistance(fkey,[fc,bc]);
+  const front=garmentGeo(item,1,key&&fc,key,fit,dist), back=garmentGeo(item,-1,key&&fc,key,fit,dist);
   const ft=new THREE.CanvasTexture(fc), bt=new THREE.CanvasTexture(bc);
   [ft,bt].forEach(t=>{t.encoding=THREE.sRGBEncoding; t.anisotropy=renderer.capabilities.getMaxAnisotropy();});
   const U={uBend:{value:new THREE.Vector2()}, uTwist:{value:0}, uTop:{value:(CH/2-fit.yc)*S}};
@@ -728,6 +749,25 @@ function step(dt){
       h.vtw+=(-67*h.tw-4.9*h.vtw-.5*ayw)*dt; h.tw=clamp(h.tw+h.vtw*dt,-.7,.7);
     }
   }
+  separate();
+}
+// Garments on the rail can't pass through each other: a garment that turns needs room, so it pushes its neighbours along the rail.
+const HALF_W={tee:.25,tank:.155,hoodie:.2};
+function separate(){
+  let a=null;
+  for(let i=0;i<N;i++){ const b=hangables[i]; if(b.carried||b.path) continue;
+    if(a){ const A=a.yaw, B=b.yaw, wa=HALF_W[a.item.type], wb=HALF_W[b.item.type];
+      // side by side they need their full footprint; turned the same way they can overlap like roof tiles
+      let need=wa*Math.abs(Math.cos(A))+wb*Math.abs(Math.cos(B))+.03;
+      if(A*B>=0){ const m=Math.min((Math.abs(A)+Math.abs(B))/2,1.57), df=Math.min(Math.abs(A-B),1.57);
+        need=Math.min(need,(Math.max(wa,wb)*Math.sin(df)+.1)/Math.max(Math.sin(m),.2)); }
+      const gap=b.x-a.x;
+      if(gap<need){ const c=Math.min((need-gap)/2,.012); a.x-=c; b.x+=c; if(a.vx>b.vx){ const m=(a.vx+b.vx)/2; a.vx=m; b.vx=m; } }
+      // the same holds lower down: a swinging hem pushes the next garment's hem instead of passing through it
+      const hem=(b.x-a.x)+.8*(Math.sin(b.tz)-Math.sin(a.tz));
+      if(hem<need*.9){ const c=Math.min((need*.9-hem)/1.6,.02); a.tz-=c; b.tz+=c; if(a.vtz>b.vtz){ const m=(a.vtz+b.vtz)/2; a.vtz=m; b.vtz=m; } }
+    }
+    a=b; }
 }
 function apply(){
   for(const h of hangables){
