@@ -150,7 +150,7 @@ aside.sheet.open{transform:none}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-function kremastraMain(){
+function kremastraMain(PHOTOS){
 'use strict';
 /* ------------------------------------------------------------------ data */
 const CATS = [
@@ -177,7 +177,7 @@ const RAW = [
   {cat:1,name:'Hoodie Navy Stripe',color:'#1e2a45',ink:'#e9e4d8',print:'sleeve',price:52,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:340,fit:'Κανονική',desc:'Σκούρο μπλε με διπλή ρίγα στα μανίκια.'},
   // Κοντομάνικα
   {cat:2,name:'T-shirt με τσέπη',color:'#f5f3ee',ink:'#1c1a17',print:'pocket',price:22,comp:'100% βαμβάκι',gsm:220,fit:'Κανονική',desc:'Λευκό heavyweight μπλουζάκι με τσέπη στο στήθος.'},
-  {cat:2,name:'T-shirt Μαύρο',color:'#1f1f21',ink:'#eee',print:'none',price:22,comp:'100% βαμβάκι',gsm:220,fit:'Κανονική',desc:'Το μαύρο μπλουζάκι που φοράς με όλα.'},
+  {cat:2,name:'T-shirt Μαύρο',color:'#1f1f21',ink:'#eee',print:'none',photo:'teeBlack',price:22,comp:'100% βαμβάκι',gsm:220,fit:'Κανονική',desc:'Το μαύρο μπλουζάκι που φοράς με όλα.'},
   {cat:2,name:'T-shirt Ακρογιαλιά',color:'#c6d6cc',ink:'#23392f',print:'text',text:'ΑΚΡΟΓΙΑΛΙΑ',price:25,comp:'100% οργανικό βαμβάκι',gsm:200,fit:'Χαλαρή',desc:'Μέντα με τυπωμένη λέξη στο στήθος.'},
   {cat:2,name:'T-shirt Ναυτικό',color:'#f2efe7',ink:'#1f2d52',print:'stripes',price:27,comp:'100% βαμβάκι',gsm:230,fit:'Κανονική',desc:'Κλασική ναυτική ρίγα, μπλε πάνω σε εκρού.'},
   {cat:2,name:'T-shirt Μουστάρδα',color:'#c69a32',ink:'#2a2214',print:'logo',price:24,comp:'100% βαμβάκι',gsm:210,fit:'Κανονική',desc:'Ζεστό κίτρινο της μουστάρδας με μικρό σήμα.'},
@@ -346,11 +346,63 @@ function paintGarment(item, back){
   return c;
 }
 
+/* ------------------------------------------------------------------ real photos
+   Each garment type has a real product photo (front + back), cut out and fitted to the
+   512x640 garment frame at 2x (see img/ and README). The photos are white garments stored
+   as shading (grey = 200 means "the fabric's own colour"), so every item gets its colour
+   and print painted flat and then multiplied by the photo's real folds and light.
+   An item with photo:'<key>' uses that real colour photo as-is instead. */
+const PW=CW*2, PH=CH*2;
+const PHOTO_NECK={tee:31, tank:31, hoodie:112};   // frame y that sits on the hanger
+const ANCH={ // print positions on the photo frame (512x640 coords)
+  tee:{chest:150, logo:[330,116], pocket:[294,94,60,70]},
+  tank:{chest:170, logo:[300,150]},
+  hoodie:{chest:300, logo:[318,244], sleeve:[[118,232,112,540],[394,232,400,540]]}
+};
+function pixels(img){ const c=document.createElement('canvas'); c.width=PW; c.height=PH; const g=c.getContext('2d'); g.drawImage(img,0,0,PW,PH); return g.getImageData(0,0,PW,PH); }
+const pixCache=new Map();
+function pix(img){ if(!pixCache.has(img)) pixCache.set(img,pixels(img)); return pixCache.get(img); }
+function paintPrints(g,item){
+  const T=item.type, A=ANCH[T];
+  if(item.print==='stripes'){ g.fillStyle=item.ink; for(let y=70;y<CH;y+=30) g.fillRect(0,y,CW,12); }
+  if(item.print==='sleeve' && A.sleeve){ g.save(); g.strokeStyle=item.ink; g.lineWidth=7;
+    A.sleeve.forEach(([x0,y0,x1,y1])=>{ [-7,7].forEach(o=>{ g.beginPath(); g.moveTo(x0+o,y0); g.lineTo(x1+o,y1); g.stroke(); }); }); g.restore(); }
+  g.fillStyle=item.ink; g.textAlign='center'; g.textBaseline='middle';
+  if(item.print==='text'){ fitText(g,item.text,T==='tank'?170:T==='hoodie'?200:220,50,900); g.globalAlpha=.92; g.fillText(item.text,256,A.chest); g.globalAlpha=1; }
+  if(item.print==='big'){ fitText(g,item.text,T==='tank'?180:230,190,900); g.globalAlpha=.9; g.fillText(item.text,256,A.chest+64); g.globalAlpha=1; }
+  if(item.print==='logo'){ const [lx,ly]=A.logo; g.save(); g.strokeStyle=item.ink; g.lineWidth=3; g.beginPath(); g.arc(lx,ly,14,0,7); g.stroke();
+    g.font='800 17px Commissioner, sans-serif'; g.fillText('Κ',lx,ly+1); g.restore(); }
+  if(item.print==='pocket' && A.pocket){ const [x,y,w,h]=A.pocket; g.fillStyle=shade(item.color,-.04); g.fillRect(x,y,w,h);
+    g.strokeStyle='rgba(0,0,0,.25)'; g.lineWidth=1.4; g.strokeRect(x+.5,y+.5,w-1,h-1);
+    g.setLineDash([4,3]); g.beginPath(); g.moveTo(x+3,y+9); g.lineTo(x+w-3,y+9); g.stroke(); g.setLineDash([]); }
+}
+function photoTexture(item, img, back){
+  const sd=pix(img).data, out=new ImageData(PW,PH), o=out.data;
+  const c=document.createElement('canvas'); c.width=PW; c.height=PH; const g=c.getContext('2d');
+  g.fillStyle=item.color; g.fillRect(0,0,PW,PH); g.scale(2,2);
+  if(!back || item.print==='stripes' || item.print==='sleeve') paintPrints(g,item);
+  const fd=g.getImageData(0,0,PW,PH).data;
+  const ink=parseInt(item.ink.slice(1),16), ir=ink>>16, ig=(ink>>8)&255, ib=ink&255;
+  const edge=item.print==='edge' && item.type==='tank', ribbed=item.type==='tank' && item.idx===0;
+  for(let y=0,k=0;y<PH;y++) for(let x=0;x<PW;x++,k+=4){
+    const a=sd[k+3]; if(a===0) continue;
+    let S=sd[k]/200; if(a<250 && S>1) S=1; if(ribbed) S*= (x%9<3)?.9:1.02;
+    let r=fd[k], gg=fd[k+1], b=fd[k+2];
+    if(edge){ const t=sd[k+1]/255; r+= (ir-r)*t; gg+=(ig-gg)*t; b+=(ib-b)*t; }
+    o[k]=r*S; o[k+1]=gg*S; o[k+2]=b*S; o[k+3]=a;
+  }
+  g.setTransform(1,0,0,1,0,0); g.putImageData(out,0,0); return c;
+}
+function rawTexture(img, mirror){
+  const c=document.createElement('canvas'); c.width=PW; c.height=PH; const g=c.getContext('2d');
+  if(mirror){ g.translate(PW,0); g.scale(-1,1); } g.drawImage(img,0,0,PW,PH); return c;
+}
+
 /* ------------------------------------------------------------------ height & hit masks */
 const MW=128, MH=160;
-function buildMasks(type){
+function buildMasks(type,src){
   const c=document.createElement('canvas'); c.width=MW; c.height=MH; const g=c.getContext('2d');
-  g.scale(MW/CW,MH/CH); g.fillStyle='#fff'; g.fill(PATHS[type]());
+  if(src) g.drawImage(src,0,0,MW,MH); else { g.scale(MW/CW,MH/CH); g.fillStyle='#fff'; g.fill(PATHS[type]()); }
   const d=g.getImageData(0,0,MW,MH).data; const hit=new Float32Array(MW*MH);
   for(let i=0;i<MW*MH;i++) hit[i]=d[i*4+3]/255;
   let a=Float32Array.from(hit), b=new Float32Array(MW*MH); const R=4;
@@ -455,8 +507,9 @@ const ferrule=new THREE.CylinderGeometry(.006,.006,.018,12);
 
 /* garment meshes */
 const maskCache={};
-function garmentGeo(item,sign){
-  const masks=maskCache[item.type]||(maskCache[item.type]=buildMasks(item.type));
+function garmentGeo(item,sign,src,key){
+  key=key||item.type;
+  const masks=maskCache[key]||(maskCache[key]=buildMasks(item.type,src));
   const geo=new THREE.PlaneGeometry(CW*S,CH*S,52,64);
   const pos=geo.attributes.position, uv=geo.attributes.uv, T=THICK[item.type];
   for(let i=0;i<pos.count;i++){
@@ -480,12 +533,18 @@ ITEMS.forEach((item,i)=>{
   const hook=new THREE.Mesh(hookGeo,chrome); hook.castShadow=true; spin.add(hook);
   const fer=new THREE.Mesh(ferrule,chrome); fer.position.y=-HOOK+.004; spin.add(fer);
   const bar=new THREE.Mesh(barGeos[item.type],wood); bar.castShadow=true; spin.add(bar);
-  const front=garmentGeo(item,1), back=garmentGeo(item,-1);
-  const ft=new THREE.CanvasTexture(paintGarment(item,false)), bt=new THREE.CanvasTexture(paintGarment(item,true));
+  let fc,bc,key=null,neck=NECK[item.type];
+  if(PHOTOS){
+    if(item.photo && PHOTOS[item.photo]){ key=item.photo; fc=rawTexture(PHOTOS[key],false); bc=rawTexture(PHOTOS[key],true); }
+    else { key='p-'+item.type; fc=photoTexture(item,PHOTOS[item.type+'Front'],false); bc=photoTexture(item,PHOTOS[item.type+'Back'],true); }
+    neck=PHOTO_NECK[item.type];
+  } else { fc=paintGarment(item,false); bc=paintGarment(item,true); }
+  const front=garmentGeo(item,1,key&&fc,key), back=garmentGeo(item,-1,key&&fc,key);
+  const ft=new THREE.CanvasTexture(fc), bt=new THREE.CanvasTexture(bc);
   [ft,bt].forEach(t=>{t.encoding=THREE.sRGBEncoding; t.anisotropy=renderer.capabilities.getMaxAnisotropy();});
   const matF=new THREE.MeshStandardMaterial({map:ft,alphaTest:.5,alphaToCoverage:true,roughness:.93,metalness:0,envMapIntensity:.55,side:THREE.FrontSide});
   const matB=new THREE.MeshStandardMaterial({map:bt,alphaTest:.5,alphaToCoverage:true,roughness:.93,metalness:0,envMapIntensity:.55,side:THREE.BackSide});
-  const g=new THREE.Group(); g.position.y=-HOOK-(CH/2-NECK[item.type])*S; spin.add(g);
+  const g=new THREE.Group(); g.position.y=-HOOK-(CH/2-neck)*S; spin.add(g);
   const mF=new THREE.Mesh(front.geo,matF), mB=new THREE.Mesh(back.geo,matB);
   [mF,mB].forEach(m=>{m.castShadow=true; m.receiveShadow=true; m.userData.item=i; m.userData.masks=front.masks; g.add(m);});
   hangables.push(makePhysics({kind:'garment', i, item, pivot, swing, spin, meshes:[mF,mB], L:.38, carried:false, userYaw:0}));
@@ -736,9 +795,22 @@ function frame(now){
 updateCamera(1); requestAnimationFrame(frame);
 setTimeout(()=>document.getElementById('loading').classList.add('done'),120);
 }
-(function(){ let started=false; const go=()=>{ if(started) return; started=true; kremastraMain(); };
-  const fl = document.fonts && document.fonts.load ? Promise.all([document.fonts.load('900 52px Commissioner'),document.fonts.load('800 18px Commissioner')]) : Promise.resolve();
-  fl.then(go,go); setTimeout(go,2500); })();
+(function(){
+  const SRC={teeFront:'img/tee-front.png',teeBack:'img/tee-back.png',tankFront:'img/tank-front.png',tankBack:'img/tank-back.png',
+    hoodieFront:'img/hoodie-front.png',hoodieBack:'img/hoodie-back.png',teeBlack:'img/tee-black-front.png'};
+  const load=u=>new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=u; });
+  const photos=Promise.all(Object.entries(SRC).map(([k,u])=>load(u).then(im=>[k,im]))).then(list=>{
+    const P=Object.fromEntries(list);
+    // file:// pages can't read pixels back from images; then keep the drawn garments
+    try{ const c=document.createElement('canvas'); c.width=c.height=2; const g=c.getContext('2d'); g.drawImage(P.teeFront,0,0,2,2); g.getImageData(0,0,1,1); }
+    catch(e){ console.warn('Οι φωτογραφίες θέλουν server (όχι file://). Δείχνω τα ζωγραφιστά ρούχα.'); return null; }
+    return P;
+  }).catch(()=>null);
+  const fl = document.fonts && document.fonts.load ? Promise.all([document.fonts.load('900 52px Commissioner'),document.fonts.load('800 18px Commissioner')]).catch(()=>{}) : Promise.resolve();
+  const timeout=new Promise(r=>setTimeout(r,2500));
+  let started=false;
+  Promise.all([photos, Promise.race([fl,timeout])]).then(([P])=>{ if(started) return; started=true; kremastraMain(P); });
+})();
 </script>
 </body>
 </html>
