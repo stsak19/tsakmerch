@@ -22,6 +22,7 @@
 | `img/tank-front.png`, `img/tank-back.png` | Αμάνικο, κομμένο από το ίδιο λευκό T-shirt | [mockupbee στο Pexels](https://www.pexels.com/photo/white-t-shirt-on-white-surface-12039633/) |
 | `img/hoodie-front.png` | Λευκό hoodie, μπροστά | [MART PRODUCTION στο Pexels](https://www.pexels.com/photo/8217400/) |
 | `img/hoodie-back.png` | Το ίδιο hoodie, πίσω | [MART PRODUCTION στο Pexels](https://www.pexels.com/photo/person-in-white-hoodie-jacket-8217415/) |
+| `img/stathis-front.png`, `img/stathis-back.png` | T-shirt STATHIS Πάνθηρας, μπρος και πίσω | Το mockup του Στάθη (`tools/user_tee.py`) |
 | `img/tee-black-front.png` | Μαύρο T-shirt σε κρεμάστρα | [Hanna Pad στο Pexels](https://www.pexels.com/photo/a-black-shirt-hanging-on-the-wall-8532616/) |
 
 Όλες είναι κάτω από την [άδεια του Pexels](https://www.pexels.com/license/): δωρεάν και για εμπορική χρήση, χωρίς υποχρεωτική αναφορά. Τις αναφέρουμε όμως εδώ.

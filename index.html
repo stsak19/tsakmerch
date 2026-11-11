@@ -176,6 +176,7 @@ const RAW = [
   {cat:1,name:'Hoodie 1987',color:'#ebe3d3',ink:'#2a2620',print:'big',text:'1987',price:55,comp:'100% βαμβάκι',gsm:380,fit:'Oversized',desc:'Κρεμ φούτερ με μεγάλο vintage αριθμό.'},
   {cat:1,name:'Hoodie Navy Stripe',color:'#1e2a45',ink:'#e9e4d8',print:'sleeve',price:52,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:340,fit:'Κανονική',desc:'Σκούρο μπλε με διπλή ρίγα στα μανίκια.'},
   // Κοντομάνικα
+  {cat:2,name:'T-shirt STATHIS Πάνθηρας',color:'#111111',ink:'#f2f2f2',print:'none',photo:'stathisFront',photoBack:'stathisBack',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Oversized',desc:'Μαύρο oversized μπλουζάκι με μικρό λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
   {cat:2,name:'T-shirt με τσέπη',color:'#f5f3ee',ink:'#1c1a17',print:'pocket',price:22,comp:'100% βαμβάκι',gsm:220,fit:'Κανονική',desc:'Λευκό heavyweight μπλουζάκι με τσέπη στο στήθος.'},
   {cat:2,name:'T-shirt Μαύρο',color:'#1f1f21',ink:'#eee',print:'none',photo:'teeBlack',price:22,comp:'100% βαμβάκι',gsm:220,fit:'Κανονική',desc:'Το μαύρο μπλουζάκι που φοράς με όλα.'},
   {cat:2,name:'T-shirt Ακρογιαλιά',color:'#c6d6cc',ink:'#23392f',print:'text',text:'ΑΚΡΟΓΙΑΛΙΑ',price:25,comp:'100% οργανικό βαμβάκι',gsm:200,fit:'Χαλαρή',desc:'Μέντα με τυπωμένη λέξη στο στήθος.'},
@@ -557,7 +558,8 @@ ITEMS.forEach((item,i)=>{
   const bar=new THREE.Mesh(barGeos[item.type],wood); bar.castShadow=true; spin.add(bar);
   let fc,bc,key=null,neck=NECK[item.type];
   if(PHOTOS){
-    if(item.photo && PHOTOS[item.photo]){ key=item.photo; fc=rawTexture(PHOTOS[key],false); bc=rawTexture(PHOTOS[key],true); }
+    if(item.photo && PHOTOS[item.photo]){ key=item.photo; fc=rawTexture(PHOTOS[key],false);
+      bc = item.photoBack && PHOTOS[item.photoBack] ? rawTexture(PHOTOS[item.photoBack],false) : rawTexture(PHOTOS[key],true); }
     else { key='p-'+item.type; fc=photoTexture(item,PHOTOS[item.type+'Front'],false); bc=photoTexture(item,PHOTOS[item.type+'Back'],true); }
     neck=PHOTO_NECK[item.type];
   } else { fc=paintGarment(item,false); bc=paintGarment(item,true); }
@@ -823,7 +825,8 @@ setTimeout(()=>document.getElementById('loading').classList.add('done'),120);
 }
 (function(){
   const SRC={teeFront:'img/tee-front.png',teeBack:'img/tee-back.png',tankFront:'img/tank-front.png',tankBack:'img/tank-back.png',
-    hoodieFront:'img/hoodie-front.png',hoodieBack:'img/hoodie-back.png',teeBlack:'img/tee-black-front.png'};
+    hoodieFront:'img/hoodie-front.png',hoodieBack:'img/hoodie-back.png',teeBlack:'img/tee-black-front.png',
+    stathisFront:'img/stathis-front.png',stathisBack:'img/stathis-back.png'};
   const load=u=>new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=u; });
   const photos=Promise.all(Object.entries(SRC).map(([k,u])=>load(u).then(im=>[k,im]))).then(list=>{
     const P=Object.fromEntries(list);
