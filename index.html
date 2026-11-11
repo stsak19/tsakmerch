@@ -158,32 +158,21 @@ const CATS = [
   {key:'hoodie',name:'Hoodies'},
   {key:'tee',   name:'Κοντομάνικα'}
 ];
+// One design (the owner's STATHIS panther) on three garments, in several colours. Prices and fabric details are placeholders.
 const RAW = [
-  // Αμάνικα
-  {cat:0,name:'Ribbed αμάνικο',color:'#efeae0',ink:'#1c1a17',print:'none',price:16,comp:'95% βαμβάκι · 5% ελαστάνη',gsm:180,fit:'Εφαρμοστή',desc:'Ριπ πλέξη που αγκαλιάζει το σώμα. Το βασικό λευκό του καλοκαιριού.'},
-  {cat:0,name:'Αμάνικο Μελτέμι',color:'#26262a',ink:'#f2efe8',print:'text',text:'ΜΕΛΤΕΜΙ',price:19,comp:'100% βαμβάκι',gsm:190,fit:'Κανονική',desc:'Μαύρο αμάνικο με τυπωμένο λογότυπο στο στήθος.'},
-  {cat:0,name:'Αθλητικό αμάνικο',color:'#5b6a44',ink:'#e9e2cf',print:'edge',price:18,comp:'60% βαμβάκι · 40% πολυεστέρας',gsm:160,fit:'Χαλαρή',desc:'Ελαφρύ, γρήγορο στέγνωμα, με αντίθετο ρέλι σε λαιμό και μασχάλες.'},
-  {cat:0,name:'Αμάνικο Heather',color:'#a6a6a2',ink:'#2a2a2a',print:'logo',price:17,comp:'90% βαμβάκι · 10% βισκόζη',gsm:170,fit:'Κανονική',desc:'Γκρι μελανζέ με μικρό κεντητό σήμα.'},
-  {cat:0,name:'Αμάνικο Θήρα',color:'#2c4a78',ink:'#f4efe4',print:'text',text:'ΘΗΡΑ',price:19,comp:'100% βαμβάκι',gsm:190,fit:'Κανονική',desc:'Βαθύ μπλε, εμπνευσμένο από το Αιγαίο το απόγευμα.'},
-  {cat:0,name:'Αμάνικο Άμμος',color:'#d6c19c',ink:'#3b3225',print:'none',price:16,comp:'100% οργανικό βαμβάκι',gsm:175,fit:'Χαλαρή',desc:'Χρώμα άμμου, πλυμένο για μαλακή υφή από την πρώτη μέρα.'},
-  {cat:0,name:'Αμάνικο No.23',color:'#86303a',ink:'#f3e9dc',print:'big',text:'23',price:20,comp:'100% βαμβάκι',gsm:200,fit:'Oversized',desc:'Μπορντό με μεγάλο αριθμό, σε άνετη oversized γραμμή.'},
-  // Hoodies
-  {cat:1,name:'Hoodie Βασικό',color:'#97989b',ink:'#222',print:'none',price:49,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:340,fit:'Κανονική',desc:'Χνουδωτό εσωτερικό, τσέπη καγκουρό και κορδόνια με μεταλλικές άκρες.'},
-  {cat:1,name:'Hoodie Όλυμπος',color:'#1f1f23',ink:'#efe9de',print:'text',text:'ΟΛΥΜΠΟΣ',price:55,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:360,fit:'Κανονική',desc:'Βαρύ μαύρο φούτερ με κουκούλα και τύπωμα στο στήθος.'},
-  {cat:1,name:'Hoodie Δάσος',color:'#3d4934',ink:'#e8e0c9',print:'logo',price:52,comp:'100% βαμβάκι',gsm:350,fit:'Χαλαρή',desc:'Σκούρο λαδί με μικρό κεντητό σήμα.'},
-  {cat:1,name:'Hoodie Αέρας',color:'#8eadca',ink:'#1d2a3a',print:'text',text:'ΑΕΡΑΣ',price:52,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:330,fit:'Κανονική',desc:'Απαλό γαλάζιο, ιδανικό για βραδιές δίπλα στη θάλασσα.'},
-  {cat:1,name:'Hoodie Κρασί',color:'#5b1f2b',ink:'#eadcd0',print:'none',price:49,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:340,fit:'Κανονική',desc:'Βαθύ μπορντό, ζεστό και καθαρό σχέδιο χωρίς τύπωμα.'},
-  {cat:1,name:'Hoodie 1987',color:'#ebe3d3',ink:'#2a2620',print:'big',text:'1987',price:55,comp:'100% βαμβάκι',gsm:380,fit:'Oversized',desc:'Κρεμ φούτερ με μεγάλο vintage αριθμό.'},
-  {cat:1,name:'Hoodie Navy Stripe',color:'#1e2a45',ink:'#e9e4d8',print:'sleeve',price:52,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:340,fit:'Κανονική',desc:'Σκούρο μπλε με διπλή ρίγα στα μανίκια.'},
-  // Κοντομάνικα
-  {cat:2,name:'T-shirt STATHIS Πάνθηρας',color:'#111111',ink:'#f2f2f2',print:'none',photo:'stathisFront',photoBack:'stathisBack',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Oversized',desc:'Μαύρο oversized μπλουζάκι με μικρό λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
-  {cat:2,name:'T-shirt με τσέπη',color:'#f5f3ee',ink:'#1c1a17',print:'pocket',price:22,comp:'100% βαμβάκι',gsm:220,fit:'Κανονική',desc:'Λευκό heavyweight μπλουζάκι με τσέπη στο στήθος.'},
-  {cat:2,name:'T-shirt Μαύρο',color:'#1f1f21',ink:'#eee',print:'none',photo:'teeBlack',price:22,comp:'100% βαμβάκι',gsm:220,fit:'Κανονική',desc:'Το μαύρο μπλουζάκι που φοράς με όλα.'},
-  {cat:2,name:'T-shirt Ακρογιαλιά',color:'#c6d6cc',ink:'#23392f',print:'text',text:'ΑΚΡΟΓΙΑΛΙΑ',price:25,comp:'100% οργανικό βαμβάκι',gsm:200,fit:'Χαλαρή',desc:'Μέντα με τυπωμένη λέξη στο στήθος.'},
-  {cat:2,name:'T-shirt Ναυτικό',color:'#f2efe7',ink:'#1f2d52',print:'stripes',price:27,comp:'100% βαμβάκι',gsm:230,fit:'Κανονική',desc:'Κλασική ναυτική ρίγα, μπλε πάνω σε εκρού.'},
-  {cat:2,name:'T-shirt Μουστάρδα',color:'#c69a32',ink:'#2a2214',print:'logo',price:24,comp:'100% βαμβάκι',gsm:210,fit:'Κανονική',desc:'Ζεστό κίτρινο της μουστάρδας με μικρό σήμα.'},
-  {cat:2,name:'T-shirt No.07',color:'#4a4c51',ink:'#efe9dc',print:'big',text:'07',price:25,comp:'100% βαμβάκι',gsm:220,fit:'Oversized',desc:'Γραφίτης με μεγάλο αριθμό, oversized γραμμή.'},
-  {cat:2,name:'T-shirt Ρόδι',color:'#b4525d',ink:'#f6ebe0',print:'none',price:22,comp:'100% βαμβάκι',gsm:220,fit:'Κανονική',desc:'Το κόκκινο του ροδιού, πλυμένο για ξεθωριασμένο τόνο.'}
+  {cat:0,name:'Αμάνικο STATHIS Πάνθηρας · Μαύρο',color:'#151515',ink:'#f2f2f2',print:'stathis',price:24,comp:'100% βαμβάκι',gsm:190,fit:'Κανονική',desc:'Αμάνικο σε μαύρο, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  {cat:0,name:'Αμάνικο STATHIS Πάνθηρας · Λευκό',color:'#f1efe9',ink:'#141414',print:'stathis',price:24,comp:'100% βαμβάκι',gsm:190,fit:'Κανονική',desc:'Αμάνικο σε λευκό, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  {cat:0,name:'Αμάνικο STATHIS Πάνθηρας · Μπορντό',color:'#6e1f2a',ink:'#f2ece2',print:'stathis',price:24,comp:'100% βαμβάκι',gsm:190,fit:'Κανονική',desc:'Αμάνικο σε μπορντό, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  {cat:0,name:'Αμάνικο STATHIS Πάνθηρας · Χακί',color:'#55603f',ink:'#efe9d6',print:'stathis',price:24,comp:'100% βαμβάκι',gsm:190,fit:'Κανονική',desc:'Αμάνικο σε χακί, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  {cat:1,name:'Hoodie STATHIS Πάνθηρας · Μαύρο',color:'#151515',ink:'#f2f2f2',print:'stathis',price:55,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:340,fit:'Κανονική',desc:'Φούτερ με κουκούλα σε μαύρο, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  {cat:1,name:'Hoodie STATHIS Πάνθηρας · Γκρι μελανζέ',color:'#9a9b9e',ink:'#141414',print:'stathis',price:55,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:340,fit:'Κανονική',desc:'Φούτερ με κουκούλα σε γκρι μελανζέ, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  {cat:1,name:'Hoodie STATHIS Πάνθηρας · Μπορντό',color:'#6e1f2a',ink:'#f2ece2',print:'stathis',price:55,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:340,fit:'Κανονική',desc:'Φούτερ με κουκούλα σε μπορντό, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  {cat:1,name:'Hoodie STATHIS Πάνθηρας · Navy',color:'#1e2a45',ink:'#eeeae0',print:'stathis',price:55,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:340,fit:'Κανονική',desc:'Φούτερ με κουκούλα σε navy, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  {cat:2,name:'T-shirt STATHIS Πάνθηρας · Μαύρο',color:'#111111',ink:'#f2f2f2',print:'none',photo:'stathisFront',photoBack:'stathisBack',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Oversized',desc:'Μαύρο oversized μπλουζάκι με μικρό λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  {cat:2,name:'T-shirt STATHIS Πάνθηρας · Λευκό',color:'#f1efe9',ink:'#141414',print:'stathis',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Κανονική',desc:'Μπλουζάκι σε λευκό, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  {cat:2,name:'T-shirt STATHIS Πάνθηρας · Μπορντό',color:'#6e1f2a',ink:'#f2ece2',print:'stathis',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Κανονική',desc:'Μπλουζάκι σε μπορντό, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  {cat:2,name:'T-shirt STATHIS Πάνθηρας · Χακί',color:'#55603f',ink:'#efe9d6',print:'stathis',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Κανονική',desc:'Μπλουζάκι σε χακί, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  {cat:2,name:'T-shirt STATHIS Πάνθηρας · Άμμος',color:'#d6c19c',ink:'#141414',print:'stathis',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Κανονική',desc:'Μπλουζάκι σε άμμος, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'}
 ];
 const SIZES = ['XS','S','M','L','XL','XXL'];
 const ITEMS = RAW.map((r,i)=>Object.assign({}, r, {
@@ -283,7 +272,7 @@ function paintGarment(item, back){
     g.beginPath(); g.moveTo(332,26); g.quadraticCurveTo(334,170,370,238); g.stroke();
     g.beginPath(); g.moveTo(180,26); g.quadraticCurveTo(178,170,142,238); g.stroke(); g.restore();
     stitch(g,()=>{g.moveTo(138,596); g.quadraticCurveTo(256,608,374,596);},seamCol);
-    if(item.idx===0){ // ribbed: vertical ribs over everything
+    if(item.ribbed){ // ribbed: vertical ribs over everything
       g.strokeStyle='rgba(0,0,0,.07)'; g.lineWidth=2; for(let x=0;x<CW;x+=7){g.beginPath();g.moveTo(x,0);g.lineTo(x,CH);g.stroke();}
     }
   }
@@ -363,6 +352,19 @@ const ANCH={ // print positions on the photo frame (512x640 coords)
 function pixels(img){ const c=document.createElement('canvas'); c.width=PW; c.height=PH; const g=c.getContext('2d'); g.drawImage(img,0,0,PW,PH); return g.getImageData(0,0,PW,PH); }
 const pixCache=new Map();
 function pix(img){ if(!pixCache.has(img)) pixCache.set(img,pixels(img)); return pixCache.get(img); }
+/* the owner's artwork, cut out of the mockup as white ink (img/art-*.png): small logo on the chest, panther on the back.
+   [centre x, centre y, width] on the 512x640 garment frame */
+const ART_POS={ tee:{logo:[256,165,42], panther:[256,198,190]}, tank:{logo:[256,190,40], panther:[256,222,168]}, hoodie:{logo:[256,285,46], panther:[256,365,212]} };
+const inkCache=new Map();
+function inked(img,ink){ const k=img.src+ink; if(inkCache.has(k)) return inkCache.get(k);
+  const c=document.createElement('canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; const g=c.getContext('2d');
+  g.drawImage(img,0,0); g.globalCompositeOperation='source-in'; g.fillStyle=ink; g.fillRect(0,0,c.width,c.height); inkCache.set(k,c); return c; }
+function paintArt(g,item,back){
+  const img=PHOTOS && PHOTOS[back?'artPanther':'artLogo']; if(!img) return;
+  const [cx,cy,w]=ART_POS[item.type][back?'panther':'logo'], h=w*img.naturalHeight/img.naturalWidth;
+  g.save(); if(back){ g.translate(CW,0); g.scale(-1,1); } // back photos are stored as seen through the front
+  g.drawImage(inked(img,item.ink),cx-w/2,cy-h/2,w,h); g.restore();
+}
 function paintPrints(g,item){
   const T=item.type, A=ANCH[T];
   if(item.print==='stripes'){ g.fillStyle=item.ink; for(let y=70;y<CH;y+=30) g.fillRect(0,y,CW,12); }
@@ -395,11 +397,11 @@ function photoTexture(item, img, back){
   const sd=pix(img).data, B=foldMap(img), out=new ImageData(PW,PH), o=out.data;
   // print layer on its own, so it can be bent along the folds before it is laid on the fabric
   const c=document.createElement('canvas'); c.width=PW; c.height=PH; const g=c.getContext('2d');
-  g.scale(2,2); if(!back || item.print==='stripes' || item.print==='sleeve') paintPrints(g,item);
+  g.scale(2,2); if(item.print==='stathis') paintArt(g,item,back); else if(!back || item.print==='stripes' || item.print==='sleeve') paintPrints(g,item);
   const pd=g.getImageData(0,0,PW,PH).data;
   const col=parseInt(item.color.slice(1),16), cr=col>>16, cg=(col>>8)&255, cb=col&255;
   const ink=parseInt(item.ink.slice(1),16), ir=ink>>16, ig=(ink>>8)&255, ib=ink&255;
-  const edge=item.print==='edge' && item.type==='tank', ribbed=item.type==='tank' && item.idx===0;
+  const edge=item.print==='edge' && item.type==='tank', ribbed=!!item.ribbed;
   const K=150; // fold displacement strength (px per unit of shading slope)
   for(let y=0,k=0;y<PH;y++) for(let x=0;x<PW;x++,k+=4){
     const a=sd[k+3]; if(a===0) continue;
@@ -586,7 +588,7 @@ function garmentGeo(item,sign,src,key,fit,dist){
       let z=sign*(.0007+t*h), Y=(CH/2-yv)*S;
       if(hood){ // the hood can't stand up on a hanger: it leans back from the neck, curving a little as it goes
         const hinge=fit.at(dx)-CLEAR+6, wgt=1-clamp((Math.abs(dx)-SHOULDER.hoodie.d0)/15,0,1);
-        if(yv<hinge && wgt>0){ const d=(hinge-yv)*S, th0=.95*wgt, rho=.3;
+        if(yv<hinge && wgt>0){ const d=(hinge-yv)*S, th0=.5*wgt, rho=.5;
           Y=(CH/2-hinge)*S+rho*(Math.sin(th0+d/rho)-Math.sin(th0)); z+=-rho*(Math.cos(th0)-Math.cos(th0+d/rho)); }
       }
       pos.setY(i,Y); pos.setZ(i,z); continue; }
@@ -959,7 +961,7 @@ setTimeout(()=>document.getElementById('loading').classList.add('done'),120);
 }
 (function(){
   const SRC={teeFront:'img/tee-front.png',teeBack:'img/tee-back.png',tankFront:'img/tank-front.png',tankBack:'img/tank-back.png',
-    hoodieFront:'img/hoodie-front.png',hoodieBack:'img/hoodie-back.png',teeBlack:'img/tee-black-front.png',
+    hoodieFront:'img/hoodie-front.png',hoodieBack:'img/hoodie-back.png',artLogo:'img/art-logo.png',artPanther:'img/art-panther.png',
     stathisFront:'img/stathis-front.png',stathisBack:'img/stathis-back.png'};
   const load=u=>new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=u; });
   const photos=Promise.all(Object.entries(SRC).map(([k,u])=>load(u).then(im=>[k,im]))).then(list=>{
