@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Κρεμάστρα</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;800;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0}
+/* Layout: full-bleed 3D store wall with the rack; thin UI floats over it (tabs top, focus label bottom, detail sheet on pick). Single deliberate look: a lit shop wall. */
+:root{
+  --wall:#c9c1b4;
+  --ink:#1c1a17;
+  --paper:#f5f2ed;
+  --muted:#6b645a;
+  --line:rgba(28,26,23,.16);
+  --accent:#2440b8;
+  --ok:#2f7a4b;
+  --f-ui:'Commissioner', 'Segoe UI', system-ui, sans-serif;
+  --f-mono:'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color-scheme: light;
+}
+html,body{height:100%}
+body{background:var(--wall);color:var(--ink);font-family:var(--f-ui);overflow:hidden;-webkit-font-smoothing:antialiased}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#stage canvas.grabbing{cursor:grabbing}
+#stage canvas.hovering{cursor:pointer}
+.vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 38%,transparent 55%,rgba(30,24,16,.28) 100%)}
+
+header{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  padding-top:calc(env(safe-area-inset-top,0px) + 14px);padding-bottom:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none}
+header > *{pointer-events:auto}
+.brand{font-weight:900;font-size:22px;letter-spacing:-.02em;line-height:1;display:flex;align-items:baseline;gap:8px}
+.brand small{font-family:var(--f-mono);font-weight:400;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+nav.tabs{display:flex;gap:4px;background:rgba(245,242,237,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:4px}
+nav.tabs button{font:600 13px/1 var(--f-ui);border:0;background:transparent;color:var(--ink);padding:9px 14px;border-radius:999px;cursor:pointer;display:flex;gap:7px;align-items:center;transition:background .2s,color .2s}
+nav.tabs button span{font:400 10px/1 var(--f-mono);opacity:.6}
+nav.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+nav.tabs button:focus-visible,.btn:focus-visible,.size:focus-visible,.arrow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cart{margin-left:auto;font:600 13px/1 var(--f-ui);display:flex;align-items:center;gap:8px;background:rgba(245,242,237,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:9px 14px}
+.cart b{font:600 11px/1 var(--f-mono);background:var(--accent);color:#fff;border-radius:999px;min-width:20px;height:20px;display:grid;place-items:center;padding:0 5px}
+
+.focusbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;
+  padding-bottom:calc(env(safe-area-inset-bottom,0px) + 18px);padding-top:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none;transition:opacity .35s,transform .35s}
+.focusbar.away{opacity:0;transform:translateY(20px)}
+.focuscard{pointer-events:auto;display:flex;align-items:center;gap:14px;background:rgba(245,242,237,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:18px;padding:8px;max-width:100%}
+.arrow{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-size:18px;cursor:pointer;flex:none}
+.arrow:hover{background:#fff}
+.fmeta{min-width:0;text-align:center;padding:0 4px}
+.fmeta .n{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmeta .s{font:400 11px/1.4 var(--f-mono);color:var(--muted);white-space:nowrap}
+.fmeta .s b{color:var(--ink);font-weight:600}
+.hint{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 82px);transform:translateX(-50%);font:400 11px/1.4 var(--f-mono);color:rgba(28,26,23,.62);letter-spacing:.04em;white-space:nowrap;pointer-events:none;transition:opacity .6s}
+.hint.gone{opacity:0}
+
+aside.sheet{position:fixed;top:calc(env(safe-area-inset-top,0px) + 78px);right:max(16px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 18px);width:min(360px,calc(100vw - 32px));
+  background:var(--paper);border:1px solid var(--line);border-radius:22px;box-shadow:0 30px 60px -30px rgba(40,30,20,.45);display:flex;flex-direction:column;overflow:auto;
+  transform:translateX(calc(100% + 40px));transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+aside.sheet.open{transform:none}
+.sheet .in{padding:22px;display:flex;flex-direction:column;gap:18px;flex:1}
+.sheet .cat{font:400 10px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.sheet h2{margin:0;font-weight:900;font-size:28px;line-height:1.05;letter-spacing:-.02em;text-wrap:balance}
+.sheet .price{font:600 22px/1 var(--f-mono);color:var(--accent);font-variant-numeric:tabular-nums}
+.sheet p{margin:0;line-height:1.55;color:#3a362f;font-size:14px}
+.spec{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12.5px;margin:0}
+.spec dt{font:400 10.5px/1.6 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.spec dd{margin:0}
+.sizes{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.size{font:600 12px/1 var(--f-mono);border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;height:40px;cursor:pointer}
+.size[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.size:disabled{color:#b5aea4;background:transparent;text-decoration:line-through;cursor:not-allowed}
+.lbl{font:400 10.5px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
+.actions{display:flex;flex-direction:column;gap:8px;margin-top:auto}
+.btn{font:700 14px/1 var(--f-ui);border-radius:14px;height:48px;border:1px solid var(--ink);cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.primary:hover{background:#000}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.rotate-tip{font:400 10.5px/1.4 var(--f-mono);color:var(--muted);text-align:center}
+
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 76px);transform:translate(-50%,-12px);opacity:0;background:var(--ink);color:var(--paper);font:600 13px/1 var(--f-ui);padding:12px 16px;border-radius:12px;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.loading{position:fixed;inset:0;display:grid;place-items:center;font:400 12px/1 var(--f-mono);letter-spacing:.1em;color:var(--muted);background:var(--wall);transition:opacity .6s}
+.loading.done{opacity:0;pointer-events:none}
+
+@media (max-width:720px){
+  header{gap:10px}
+  .brand small{display:none}
+  nav.tabs{order:3;width:100%;justify-content:space-between}
+  nav.tabs button{flex:1;justify-content:center;padding:9px 6px;font-size:12.5px}
+  aside.sheet{top:auto;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));width:auto;max-height:52%;transform:translateY(calc(100% + 40px))}
+  .sheet .in{padding:18px;gap:14px}
+  .sheet h2{font-size:22px}
+  .hint{bottom:calc(env(safe-area-inset-bottom,0px) + 80px);font-size:10px;white-space:normal;text-align:center;width:calc(100% - 32px)}
+}
+@media (prefers-reduced-motion: reduce){ aside.sheet,.focusbar,.toast{transition:none} }
+</style>
+</head>
+<body>
+
+<div id="stage"></div>
+<div class="vignette"></div>
+<div class="loading" id="loading">ΚΡΕΜΑΜΕ ΤΑ ΡΟΥΧΑ…</div>
+
+<header>
+  <div class="brand">Κρεμάστρα <small>Καλοκαίρι / Φθινόπωρο</small></div>
+  <nav class="tabs" id="tabs" aria-label="Κατηγορίες"></nav>
+  <div class="cart" aria-live="polite">Καλάθι <b id="cartCount">0</b></div>
+</header>
+
+<div class="hint" id="hint">Σύρε ή κάνε scroll για να ψάξεις · Κλικ στο ρούχο για να το βγάλεις</div>
+
+<div class="focusbar" id="focusbar">
+  <div class="focuscard">
+    <button class="arrow" id="prev" aria-label="Προηγούμενο ρούχο">‹</button>
+    <div class="fmeta"><div class="n" id="fName">–</div><div class="s" id="fSub">–</div></div>
+    <button class="arrow" id="next" aria-label="Επόμενο ρούχο">›</button>
+  </div>
+</div>
+
+<aside class="sheet" id="sheet" aria-hidden="true">
+  <div class="in">
+    <div class="cat" id="sCat"></div>
+    <h2 id="sName"></h2>
+    <div class="price" id="sPrice"></div>
+    <p id="sDesc"></p>
+    <dl class="spec">
+      <dt>Σύνθεση</dt><dd id="sComp"></dd>
+      <dt>Βάρος</dt><dd id="sGsm"></dd>
+      <dt>Γραμμή</dt><dd id="sFit"></dd>
+    </dl>
+    <div>
+      <div class="lbl"><span>Μέγεθος</span><span id="sStock"></span></div>
+      <div class="sizes" id="sizes" style="margin-top:8px"></div>
+    </div>
+    <div class="actions">
+      <div class="rotate-tip">Σύρε το ρούχο για να δεις και την πλάτη</div>
+      <button class="btn primary" id="addCart">Προσθήκη στο καλάθι</button>
+      <button class="btn ghost" id="putBack">Πίσω στην κρεμάστρα</button>
+    </div>
+  </div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+function kremastraMain(){
+'use strict';
+/* ------------------------------------------------------------------ data */
+const CATS = [
+  {key:'tank',  name:'Αμάνικα'},
+  {key:'hoodie',name:'Hoodies'},
+  {key:'tee',   name:'Κοντομάνικα'}
+];
+const RAW = [
+  // Αμάνικα
+  {cat:0,name:'Ribbed αμάνικο',color:'#efeae0',ink:'#1c1a17',print:'none',price:16,comp:'95% βαμβάκι · 5% ελαστάνη',gsm:180,fit:'Εφαρμοστή',desc:'Ριπ πλέξη που αγκαλιάζει το σώμα. Το βασικό λευκό του καλοκαιριού.'},
+  {cat:0,name:'Αμάνικο Μελτέμι',color:'#26262a',ink:'#f2efe8',print:'text',text:'ΜΕΛΤΕΜΙ',price:19,comp:'100% βαμβάκι',gsm:190,fit:'Κανονική',desc:'Μαύρο αμάνικο με τυπωμένο λογότυπο στο στήθος.'},
+  {cat:0,name:'Αθλητικό αμάνικο',color:'#5b6a44',ink:'#e9e2cf',print:'edge',price:18,comp:'60% βαμβάκι · 40% πολυεστέρας',gsm:160,fit:'Χαλαρή',desc:'Ελαφρύ, γρήγορο στέγνωμα, με αντίθετο ρέλι σε λαιμό και μασχάλες.'},
+  {cat:0,name:'Αμάνικο Heather',color:'#a6a6a2',ink:'#2a2a2a',print:'logo',price:17,comp:'90% βαμβάκι · 10% βισκόζη',gsm:170,fit:'Κανονική',desc:'Γκρι μελανζέ με μικρό κεντητό σήμα.'},
+  {cat:0,name:'Αμάνικο Θήρα',color:'#2c4a78',ink:'#f4efe4',print:'text',text:'ΘΗΡΑ',price:19,comp:'100% βαμβάκι',gsm:190,fit:'Κανονική',desc:'Βαθύ μπλε, εμπνευσμένο από το Αιγαίο το απόγευμα.'},
+  {cat:0,name:'Αμάνικο Άμμος',color:'#d6c19c',ink:'#3b3225',print:'none',price:16,comp:'100% οργανικό βαμβάκι',gsm:175,fit:'Χαλαρή',desc:'Χρώμα άμμου, πλυμένο για μαλακή υφή από την πρώτη μέρα.'},
+  {cat:0,name:'Αμάνικο No.23',color:'#86303a',ink:'#f3e9dc',print:'big',text:'23',price:20,comp:'100% βαμβάκι',gsm:200,fit:'Oversized',desc:'Μπορντό με μεγάλο αριθμό, σε άνετη oversized γραμμή.'},
+  // Hoodies
+  {cat:1,name:'Hoodie Βασικό',color:'#97989b',ink:'#222',print:'none',price:49,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:340,fit:'Κανονική',desc:'Χνουδωτό εσωτερικό, τσέπη καγκουρό και κορδόνια με μεταλλικές άκρες.'},
+  {cat:1,name:'Hoodie Όλυμπος',color:'#1f1f23',ink:'#efe9de',print:'text',text:'ΟΛΥΜΠΟΣ',price:55,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:360,fit:'Κανονική',desc:'Βαρύ μαύρο φούτερ με κουκούλα και τύπωμα στο στήθος.'},
+  {cat:1,name:'Hoodie Δάσος',color:'#3d4934',ink:'#e8e0c9',print:'logo',price:52,comp:'100% βαμβάκι',gsm:350,fit:'Χαλαρή',desc:'Σκούρο λαδί με μικρό κεντητό σήμα.'},
+  {cat:1,name:'Hoodie Αέρας',color:'#8eadca',ink:'#1d2a3a',print:'text',text:'ΑΕΡΑΣ',price:52,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:330,fit:'Κανονική',desc:'Απαλό γαλάζιο, ιδανικό για βραδιές δίπλα στη θάλασσα.'},
+  {cat:1,name:'Hoodie Κρασί',color:'#5b1f2b',ink:'#eadcd0',print:'none',price:49,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:340,fit:'Κανονική',desc:'Βαθύ μπορντό, ζεστό και καθαρό σχέδιο χωρίς τύπωμα.'},
+  {cat:1,name:'Hoodie 1987',color:'#ebe3d3',ink:'#2a2620',print:'big',text:'1987',price:55,comp:'100% βαμβάκι',gsm:380,fit:'Oversized',desc:'Κρεμ φούτερ με μεγάλο vintage αριθμό.'},
+  {cat:1,name:'Hoodie Navy Stripe',color:'#1e2a45',ink:'#e9e4d8',print:'sleeve',price:52,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:340,fit:'Κανονική',desc:'Σκούρο μπλε με διπλή ρίγα στα μανίκια.'},
+  // Κοντομάνικα
+  {cat:2,name:'T-shirt με τσέπη',color:'#f5f3ee',ink:'#1c1a17',print:'pocket',price:22,comp:'100% βαμβάκι',gsm:220,fit:'Κανονική',desc:'Λευκό heavyweight μπλουζάκι με τσέπη στο στήθος.'},
+  {cat:2,name:'T-shirt Μαύρο',color:'#1f1f21',ink:'#eee',print:'none',price:22,comp:'100% βαμβάκι',gsm:220,fit:'Κανονική',desc:'Το μαύρο μπλουζάκι που φοράς με όλα.'},
+  {cat:2,name:'T-shirt Ακρογιαλιά',color:'#c6d6cc',ink:'#23392f',print:'text',text:'ΑΚΡΟΓΙΑΛΙΑ',price:25,comp:'100% οργανικό βαμβάκι',gsm:200,fit:'Χαλαρή',desc:'Μέντα με τυπωμένη λέξη στο στήθος.'},
+  {cat:2,name:'T-shirt Ναυτικό',color:'#f2efe7',ink:'#1f2d52',print:'stripes',price:27,comp:'100% βαμβάκι',gsm:230,fit:'Κανονική',desc:'Κλασική ναυτική ρίγα, μπλε πάνω σε εκρού.'},
+  {cat:2,name:'T-shirt Μουστάρδα',color:'#c69a32',ink:'#2a2214',print:'logo',price:24,comp:'100% βαμβάκι',gsm:210,fit:'Κανονική',desc:'Ζεστό κίτρινο της μουστάρδας με μικρό σήμα.'},
+  {cat:2,name:'T-shirt No.07',color:'#4a4c51',ink:'#efe9dc',print:'big',text:'07',price:25,comp:'100% βαμβάκι',gsm:220,fit:'Oversized',desc:'Γραφίτης με μεγάλο αριθμό, oversized γραμμή.'},
+  {cat:2,name:'T-shirt Ρόδι',color:'#b4525d',ink:'#f6ebe0',print:'none',price:22,comp:'100% βαμβάκι',gsm:220,fit:'Κανονική',desc:'Το κόκκινο του ροδιού, πλυμένο για ξεθωριασμένο τόνο.'}
+];
+const SIZES = ['XS','S','M','L','XL','XXL'];
+const ITEMS = RAW.map((r,i)=>Object.assign({}, r, {
+  idx:i, type:CATS[r.cat].key, seed: (i*7.31)%6.28,
+  stock: SIZES.map((s,k)=> ((i*5 + k*3) % 11) !== 0 && !(k===0 && i%3===0))
+}));
+const N = ITEMS.length;
+
+/* ------------------------------------------------------------------ helpers */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function shade(hex,amt){ // amt -1..1
+  const n=parseInt(hex.slice(1),16); let r=n>>16,g=(n>>8)&255,b=n&255;
+  const t=amt<0?0:255, p=Math.abs(amt);
+  r=Math.round((t-r)*p+r); g=Math.round((t-g)*p+g); b=Math.round((t-b)*p+b);
+  return `rgb(${r},${g},${b})`;
+}
+function lum(hex){const n=parseInt(hex.slice(1),16);return (0.3*(n>>16)+0.59*((n>>8)&255)+0.11*(n&255))/255;}
+
+/* ------------------------------------------------------------------ garment silhouettes (canvas px, 512 x 640) */
+const CW=512, CH=640;
+const NECK = {tee:40, tank:28, hoodie:44};
+const THICK = {tee:0.022, tank:0.016, hoodie:0.04};
+function pathTee(){const p=new Path2D();
+  p.moveTo(200,40); p.quadraticCurveTo(256,60,312,40);
+  p.lineTo(372,58); p.quadraticCurveTo(432,90,476,150); p.lineTo(426,206);
+  p.quadraticCurveTo(398,192,374,184); p.quadraticCurveTo(370,400,380,612);
+  p.quadraticCurveTo(256,624,132,612); p.quadraticCurveTo(142,400,138,184);
+  p.quadraticCurveTo(114,192,86,206); p.lineTo(36,150); p.quadraticCurveTo(80,90,140,58);
+  p.closePath(); return p;}
+function pathTank(){const p=new Path2D();
+  p.moveTo(176,26); p.lineTo(214,26); p.quadraticCurveTo(256,96,298,26); p.lineTo(336,26);
+  p.quadraticCurveTo(338,172,374,236); p.quadraticCurveTo(366,420,376,612);
+  p.quadraticCurveTo(256,624,136,612); p.quadraticCurveTo(146,420,138,236);
+  p.quadraticCurveTo(174,172,176,26); p.closePath(); return p;}
+function pathHoodie(){const p=new Path2D();
+  p.moveTo(170,62); p.bezierCurveTo(166,4,346,4,342,62);
+  p.lineTo(392,76); p.quadraticCurveTo(444,112,454,262);
+  p.lineTo(470,560); p.lineTo(474,606); p.lineTo(410,612); p.lineTo(406,566);
+  p.lineTo(396,330); p.lineTo(390,560); p.lineTo(394,622);
+  p.quadraticCurveTo(256,632,118,622); p.lineTo(122,560); p.lineTo(116,330);
+  p.lineTo(106,566); p.lineTo(102,612); p.lineTo(38,606); p.lineTo(42,560);
+  p.lineTo(58,262); p.quadraticCurveTo(68,112,120,76); p.closePath(); return p;}
+const PATHS={tee:pathTee,tank:pathTank,hoodie:pathHoodie};
+
+/* ------------------------------------------------------------------ texture painting */
+function fitText(g,txt,maxW,size,weight){
+  let s=size; g.font=`${weight} ${s}px Commissioner, "Segoe UI", sans-serif`;
+  while(g.measureText(txt).width>maxW && s>12){ s-=2; g.font=`${weight} ${s}px Commissioner, "Segoe UI", sans-serif`; }
+  return s;
+}
+function stitch(g,draw,col){ g.save(); g.strokeStyle=col; g.lineWidth=1.6; g.setLineDash([5,4]); g.beginPath(); draw(); g.stroke(); g.restore(); }
+function seam(g,draw,w){ g.save(); g.strokeStyle='rgba(0,0,0,.16)'; g.lineWidth=w||2.4; g.beginPath(); draw(); g.stroke();
+  g.strokeStyle='rgba(255,255,255,.07)'; g.lineWidth=1.2; g.translate(1.5,1.5); g.beginPath(); draw(); g.stroke(); g.restore(); }
+function rib(g,x0,y0,x1,y1,col,step){ g.save(); g.beginPath(); g.rect(x0,y0,x1-x0,y1-y0); g.clip();
+  g.fillStyle=col; g.fillRect(x0,y0,x1-x0,y1-y0);
+  g.strokeStyle='rgba(0,0,0,.13)'; g.lineWidth=1.4; for(let x=x0;x<x1;x+=step||5){g.beginPath();g.moveTo(x,y0);g.lineTo(x,y1);g.stroke();}
+  g.restore(); }
+
+function paintGarment(item, back){
+  const c=document.createElement('canvas'); c.width=CW; c.height=CH; const g=c.getContext('2d');
+  const P=PATHS[item.type]();
+  const base=item.color, dark=lum(base)<.35;
+  const seamCol = dark ? 'rgba(255,255,255,.22)' : 'rgba(0,0,0,.22)';
+  if(back){ g.translate(CW,0); g.scale(-1,1); }
+  g.save(); g.clip(P);
+  g.fillStyle=base; g.fillRect(0,0,CW,CH);
+  // soft directional falloff baked into the cloth (light from top-left)
+  const lg=g.createLinearGradient(0,0,CW*.4,CH); lg.addColorStop(0,'rgba(255,255,255,.06)'); lg.addColorStop(1,'rgba(0,0,0,.08)');
+  g.fillStyle=lg; g.fillRect(0,0,CW,CH);
+
+  if(item.print==='stripes'){ g.fillStyle=item.ink; for(let y=78;y<CH;y+=34){ g.fillRect(0,y,CW,14); } }
+
+  const T=item.type;
+  if(T==='tee'){
+    if(!back){
+      g.fillStyle=shade(base,-.32); g.beginPath(); g.moveTo(200,40); g.quadraticCurveTo(256,60,312,40); g.quadraticCurveTo(256,100,200,40); g.fill();
+      g.save(); g.strokeStyle=shade(base,-.06); g.lineWidth=12; g.beginPath(); g.moveTo(203,44); g.quadraticCurveTo(256,104,309,44); g.stroke(); g.restore();
+      seam(g,()=>{g.moveTo(196,46); g.quadraticCurveTo(256,114,316,46);},1.6);
+    } else {
+      g.save(); g.strokeStyle=shade(base,-.06); g.lineWidth=11; g.beginPath(); g.moveTo(200,44); g.quadraticCurveTo(256,64,312,44); g.stroke(); g.restore();
+      seam(g,()=>{g.moveTo(198,52); g.quadraticCurveTo(256,74,314,52);},1.6);
+    }
+    seam(g,()=>{g.moveTo(312,42); g.lineTo(372,58);}); seam(g,()=>{g.moveTo(200,42); g.lineTo(140,58);});
+    seam(g,()=>{g.moveTo(372,58); g.quadraticCurveTo(388,120,374,184);}); seam(g,()=>{g.moveTo(140,58); g.quadraticCurveTo(124,120,138,184);});
+    stitch(g,()=>{g.moveTo(466,160); g.lineTo(418,194);},seamCol); stitch(g,()=>{g.moveTo(46,160); g.lineTo(94,194);},seamCol);
+    stitch(g,()=>{g.moveTo(134,596); g.quadraticCurveTo(256,608,378,596);},seamCol);
+  }
+  if(T==='tank'){
+    const bind = item.print==='edge' ? item.ink : shade(base,-.07);
+    if(!back){
+      g.fillStyle=shade(base,-.32); g.beginPath(); g.moveTo(214,26); g.quadraticCurveTo(256,96,298,26); g.quadraticCurveTo(292,160,256,166); g.quadraticCurveTo(220,160,214,26); g.fill();
+      g.save(); g.strokeStyle=bind; g.lineWidth=11; g.beginPath(); g.moveTo(218,26); g.quadraticCurveTo(222,160,256,170); g.quadraticCurveTo(290,160,294,26); g.stroke(); g.restore();
+    } else {
+      g.save(); g.strokeStyle=bind; g.lineWidth=11; g.beginPath(); g.moveTo(214,26); g.quadraticCurveTo(256,100,298,26); g.stroke(); g.restore();
+    }
+    g.save(); g.strokeStyle=bind; g.lineWidth=11;
+    g.beginPath(); g.moveTo(332,26); g.quadraticCurveTo(334,170,370,238); g.stroke();
+    g.beginPath(); g.moveTo(180,26); g.quadraticCurveTo(178,170,142,238); g.stroke(); g.restore();
+    stitch(g,()=>{g.moveTo(138,596); g.quadraticCurveTo(256,608,374,596);},seamCol);
+    if(item.idx===0){ // ribbed: vertical ribs over everything
+      g.strokeStyle='rgba(0,0,0,.07)'; g.lineWidth=2; for(let x=0;x<CW;x+=7){g.beginPath();g.moveTo(x,0);g.lineTo(x,CH);g.stroke();}
+    }
+  }
+  if(T==='hoodie'){
+    if(!back){
+      g.fillStyle=shade(base,-.09); g.beginPath(); g.moveTo(166,70); g.bezierCurveTo(166,4,346,4,346,70); g.quadraticCurveTo(256,150,166,70); g.fill();
+      g.fillStyle=shade(base,-.38); g.beginPath(); g.moveTo(196,58); g.bezierCurveTo(200,24,312,24,316,58); g.quadraticCurveTo(256,138,196,58); g.fill();
+      seam(g,()=>{g.moveTo(170,70); g.quadraticCurveTo(256,156,342,70);},2.6);
+      // drawstrings
+      const cord = dark ? '#d9d4ca' : shade(base,.55);
+      g.save(); g.lineCap='round'; g.strokeStyle=cord; g.lineWidth=6;
+      g.beginPath(); g.moveTo(232,114); g.quadraticCurveTo(226,180,230,252); g.stroke();
+      g.beginPath(); g.moveTo(280,114); g.quadraticCurveTo(288,170,284,246); g.stroke();
+      g.fillStyle='#b8b3aa'; g.fillRect(226,250,8,16); g.fillRect(280,244,8,16);
+      g.fillStyle='rgba(0,0,0,.45)'; g.beginPath(); g.arc(232,112,5,0,7); g.arc(280,112,5,0,7); g.fill();
+      g.restore();
+      // kangaroo pocket
+      g.fillStyle=shade(base,-.035); g.beginPath(); g.moveTo(176,420); g.lineTo(336,420); g.lineTo(366,560); g.lineTo(146,560); g.closePath(); g.fill();
+      seam(g,()=>{g.moveTo(176,420); g.lineTo(336,420); g.lineTo(366,560); g.lineTo(146,560); g.closePath();},2);
+      g.save(); g.strokeStyle='rgba(0,0,0,.3)'; g.lineWidth=3; g.beginPath(); g.moveTo(176,422); g.quadraticCurveTo(150,470,148,556); g.moveTo(336,422); g.quadraticCurveTo(362,470,364,556); g.stroke(); g.restore();
+    } else {
+      // hood hanging down the back
+      g.fillStyle=shade(base,-.04); g.beginPath(); g.moveTo(170,62); g.bezierCurveTo(150,220,362,220,342,62); g.closePath(); g.fill();
+      seam(g,()=>{g.moveTo(172,64); g.bezierCurveTo(152,220,360,220,340,64);},2.4);
+      seam(g,()=>{g.moveTo(256,20); g.lineTo(256,190);},1.8);
+    }
+    seam(g,()=>{g.moveTo(330,70); g.lineTo(398,320);}); seam(g,()=>{g.moveTo(182,70); g.lineTo(114,320);});
+    g.save(); g.strokeStyle='rgba(0,0,0,.32)'; g.lineWidth=3; g.beginPath(); g.moveTo(398,330); g.lineTo(408,566); g.moveTo(114,330); g.lineTo(104,566); g.stroke(); g.restore();
+    if(item.print==='sleeve'){ g.save(); g.strokeStyle=item.ink; g.lineWidth=7;
+      [[0,0],[14,0]].forEach(([o])=>{ g.beginPath(); g.moveTo(410+o,96); g.lineTo(446+o,560); g.stroke(); g.beginPath(); g.moveTo(102-o,96); g.lineTo(66-o,560); g.stroke(); }); g.restore(); }
+    rib(g,0,576,CW,640,shade(base,-.04),6);
+    rib(g,400,566,480,640,shade(base,-.04),5); rib(g,32,566,112,640,shade(base,-.04),5);
+    seam(g,()=>{g.moveTo(118,578); g.lineTo(394,578);},2);
+  }
+
+  // prints (front only, readable)
+  if(!back){
+    g.fillStyle=item.ink;
+    const chestY = T==='hoodie' ? 300 : T==='tank' ? 270 : 230;
+    if(item.print==='text'){ g.textAlign='center'; g.textBaseline='middle'; fitText(g,item.text,T==='tank'?180:220,52,900); g.globalAlpha=.94; g.fillText(item.text,256,chestY); g.globalAlpha=1; }
+    if(item.print==='big'){ g.textAlign='center'; g.textBaseline='middle'; fitText(g,item.text,T==='tank'?190:250,200,900); g.globalAlpha=.92; g.fillText(item.text,256,chestY+70); g.globalAlpha=1; }
+    if(item.print==='logo'){ const lx = T==='hoodie'?318:T==='tank'?300:322, ly = T==='hoodie'?190:T==='tank'?220:150;
+      g.save(); g.strokeStyle=item.ink; g.lineWidth=3; g.beginPath(); g.arc(lx,ly,15,0,7); g.stroke();
+      g.textAlign='center'; g.textBaseline='middle'; g.font='800 18px Commissioner, sans-serif'; g.fillText('Κ',lx,ly+1); g.restore(); }
+    if(item.print==='pocket'){ g.fillStyle=shade(base,-.03); g.fillRect(298,140,70,80);
+      seam(g,()=>{g.rect(298,140,70,80);},1.8); stitch(g,()=>{g.moveTo(302,152); g.lineTo(364,152);},seamCol); }
+  } else {
+    // small woven neck label on the inside back
+    g.fillStyle=dark?'#e8e2d6':'#24221e'; g.fillRect(244, NECK[T]+ (T==='hoodie'?20:8), 24, 12);
+  }
+  g.restore();
+
+  // knit noise
+  const id=g.getImageData(0,0,CW,CH), d=id.data;
+  for(let y=0;y<CH;y++){ for(let x=0;x<CW;x++){ const k=(y*CW+x)*4; if(d[k+3]<10) continue;
+    let n=(Math.random()-.5)*16 + (((x+(y>>1))%3)===0?-5:0) + ((y%4)===0?-3:0);
+    if(T==='hoodie') n += (Math.random()-.5)*10;
+    d[k]=clamp(d[k]+n,0,255); d[k+1]=clamp(d[k+1]+n,0,255); d[k+2]=clamp(d[k+2]+n,0,255);
+  }}
+  g.putImageData(id,0,0);
+  return c;
+}
+
+/* ------------------------------------------------------------------ height & hit masks */
+const MW=128, MH=160;
+function buildMasks(type){
+  const c=document.createElement('canvas'); c.width=MW; c.height=MH; const g=c.getContext('2d');
+  g.scale(MW/CW,MH/CH); g.fillStyle='#fff'; g.fill(PATHS[type]());
+  const d=g.getImageData(0,0,MW,MH).data; const hit=new Float32Array(MW*MH);
+  for(let i=0;i<MW*MH;i++) hit[i]=d[i*4+3]/255;
+  let a=Float32Array.from(hit), b=new Float32Array(MW*MH); const R=4;
+  for(let pass=0;pass<3;pass++){
+    for(let y=0;y<MH;y++){ for(let x=0;x<MW;x++){ let s=0,n=0; for(let k=-R;k<=R;k++){const xx=x+k; s+= (xx<0||xx>=MW)?0:a[y*MW+xx]; n++;} b[y*MW+x]=s/n; }}
+    for(let y=0;y<MH;y++){ for(let x=0;x<MW;x++){ let s=0,n=0; for(let k=-R;k<=R;k++){const yy=y+k; s+= (yy<0||yy>=MH)?0:b[yy*MW+x]; n++;} a[y*MW+x]=s/n; }}
+  }
+  return {hit, soft:a};
+}
+function sample(arr,u,v){ // u,v in 0..1 (v=0 top)
+  const x=clamp(u*(MW-1),0,MW-1), y=clamp(v*(MH-1),0,MH-1); const x0=x|0,y0=y|0,x1=Math.min(x0+1,MW-1),y1=Math.min(y0+1,MH-1),fx=x-x0,fy=y-y0;
+  return (arr[y0*MW+x0]*(1-fx)+arr[y0*MW+x1]*fx)*(1-fy)+(arr[y1*MW+x0]*(1-fx)+arr[y1*MW+x1]*fx)*fy;
+}
+
+/* ------------------------------------------------------------------ three setup */
+const stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.appendChild(renderer.domElement);
+const canvasEl=renderer.domElement;
+
+const scene=new THREE.Scene();
+const WALL=0xcbc3b6;
+scene.background=new THREE.Color(WALL);
+scene.fog=new THREE.Fog(WALL,3.2,8.5);
+const camera=new THREE.PerspectiveCamera(36,innerWidth/innerHeight,0.05,40);
+
+// environment for reflections (chrome rail, soft ambient on cloth)
+(function(){
+  const pm=new THREE.PMREMGenerator(renderer); const es=new THREE.Scene();
+  const room=new THREE.Mesh(new THREE.BoxGeometry(12,6,12),new THREE.MeshBasicMaterial({color:0x6e665c,side:THREE.BackSide})); room.position.y=2.5; es.add(room);
+  const lightMat=new THREE.MeshBasicMaterial({color:0xfff3e0});
+  for(let i=-2;i<=2;i++){ const p=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.25),lightMat); p.rotation.x=Math.PI/2; p.position.set(i*2.2,5.4,0); es.add(p); }
+  const win=new THREE.Mesh(new THREE.PlaneGeometry(5,2.2),new THREE.MeshBasicMaterial({color:0xdfe6ee})); win.position.set(0,2.4,5.9); win.rotation.y=Math.PI; es.add(win);
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(12,12),new THREE.MeshBasicMaterial({color:0x8a6a4c})); floor.rotation.x=-Math.PI/2; floor.position.y=-0.4; es.add(floor);
+  scene.environment=pm.fromScene(es,0.035).texture; pm.dispose();
+})();
+
+const hemi=new THREE.HemisphereLight(0xfff6ea,0x5a4a3c,0.55); scene.add(hemi);
+const key=new THREE.DirectionalLight(0xfff0dc,1.25); key.position.set(1.1,4.2,3.2); key.castShadow=true;
+key.shadow.mapSize.set(2048,2048); key.shadow.camera.left=-2.6; key.shadow.camera.right=2.6; key.shadow.camera.top=2.4; key.shadow.camera.bottom=-0.4; key.shadow.camera.near=0.5; key.shadow.camera.far=9;
+key.shadow.bias=-0.0006; key.shadow.normalBias=0.015; key.shadow.radius=7; scene.add(key); scene.add(key.target);
+const fill=new THREE.DirectionalLight(0xdbe4f0,0.35); fill.position.set(-2.5,1.6,2); scene.add(fill); scene.add(fill.target);
+const spot=new THREE.SpotLight(0xffe9cc,1.2,6,0.5,0.7,1.2); spot.position.set(0,3.1,1.3); scene.add(spot); scene.add(spot.target);
+
+// wall & floor textures
+function noiseCanvas(w,h,baseHex,amp,fn){ const c=document.createElement('canvas'); c.width=w;c.height=h; const g=c.getContext('2d'); g.fillStyle=baseHex; g.fillRect(0,0,w,h); if(fn) fn(g,w,h);
+  const id=g.getImageData(0,0,w,h),d=id.data; for(let i=0;i<d.length;i+=4){const n=(Math.random()-.5)*amp; d[i]+=n; d[i+1]+=n; d[i+2]+=n;} g.putImageData(id,0,0); return c; }
+const wallTex=new THREE.CanvasTexture(noiseCanvas(512,512,'#cdc5b8',10,(g,w,h)=>{ for(let i=0;i<60;i++){ g.fillStyle=`rgba(${Math.random()<.5?255:90},${Math.random()<.5?240:80},220,.025)`; g.beginPath(); g.arc(Math.random()*w,Math.random()*h,20+Math.random()*80,0,7); g.fill(); } }));
+wallTex.wrapS=wallTex.wrapT=THREE.RepeatWrapping; wallTex.repeat.set(8,2); wallTex.encoding=THREE.sRGBEncoding;
+const wall=new THREE.Mesh(new THREE.PlaneGeometry(40,6),new THREE.MeshStandardMaterial({map:wallTex,roughness:.95,envMapIntensity:.4}));
+wall.position.set(0,3,-0.62); wall.receiveShadow=true; scene.add(wall);
+const skirting=new THREE.Mesh(new THREE.BoxGeometry(40,.09,.02),new THREE.MeshStandardMaterial({color:0xe8e1d5,roughness:.6})); skirting.position.set(0,.045,-0.61); scene.add(skirting);
+const floorTex=new THREE.CanvasTexture(noiseCanvas(512,512,'#8f6b4a',14,(g,w,h)=>{ const rows=8; for(let r=0;r<rows;r++){ const y=r*h/rows; let x=-Math.random()*200; while(x<w){ const L=160+Math.random()*220; g.fillStyle=`hsl(${26+Math.random()*6},${32+Math.random()*10}%,${32+Math.random()*10}%)`; g.fillRect(x,y,L,h/rows); g.fillStyle='rgba(0,0,0,.35)'; g.fillRect(x,y,2,h/rows); for(let k=0;k<6;k++){ g.fillStyle='rgba(0,0,0,.06)'; g.fillRect(x, y+Math.random()*h/rows, L, 1);} x+=L; } g.fillStyle='rgba(0,0,0,.4)'; g.fillRect(0,y,w,2);} }));
+floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping; floorTex.repeat.set(10,3); floorTex.encoding=THREE.sRGBEncoding; floorTex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,10),new THREE.MeshStandardMaterial({map:floorTex,roughness:.55,envMapIntensity:.6}));
+floor.rotation.x=-Math.PI/2; floor.position.z=3; floor.receiveShadow=true; scene.add(floor);
+
+/* ------------------------------------------------------------------ rack layout */
+const RAIL_Y=1.74, HOOK=0.105, S=0.6/CW;
+const SPACING=0.12, GAP=0.43, CAT_GAP=0.32, YAW_SIDE=1.22;
+function catOf(f){ // continuous category coordinate at focus f
+  const i0=clamp(Math.floor(f),0,N-1), i1=clamp(i0+1,0,N-1), t=clamp(f-i0,0,1);
+  return ITEMS[i0].cat*(1-t)+ITEMS[i1].cat*t;
+}
+function baseX(i){ return i*SPACING + ITEMS[i].cat*CAT_GAP; }
+function spread(d){ const a=Math.abs(d), t=a<1? a*(2-a) : 1; return Math.sign(d)*GAP*t; }
+function camXFor(f){ return f*SPACING + catOf(f)*CAT_GAP; }
+
+const chrome=new THREE.MeshStandardMaterial({color:0xd9d9db,metalness:1,roughness:.16});
+const darkMetal=new THREE.MeshStandardMaterial({color:0x2b2a28,metalness:.6,roughness:.45});
+const railX0=baseX(0)-GAP-0.45, railX1=baseX(N-1)+GAP+0.45, railLen=railX1-railX0;
+const rack=new THREE.Group(); scene.add(rack);
+const rail=new THREE.Mesh(new THREE.CylinderGeometry(.0135,.0135,railLen,24),chrome); rail.rotation.z=Math.PI/2; rail.position.set((railX0+railX1)/2,RAIL_Y,0); rail.castShadow=true; rack.add(rail);
+[railX0,railX1].forEach(x=>{
+  const up=new THREE.Mesh(new THREE.CylinderGeometry(.017,.017,RAIL_Y+.03,20),chrome); up.position.set(x,(RAIL_Y+.03)/2+.05,0); up.castShadow=true; rack.add(up);
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(.024,20,12),chrome); cap.position.set(x,RAIL_Y+.07,0); rack.add(cap);
+  const foot=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,.5,16),chrome); foot.rotation.x=Math.PI/2; foot.position.set(x,.05,0); foot.castShadow=true; rack.add(foot);
+  [-.24,.24].forEach(z=>{ const w=new THREE.Mesh(new THREE.CylinderGeometry(.032,.032,.022,20),darkMetal); w.rotation.z=Math.PI/2; w.position.set(x,.032,z); w.castShadow=true; rack.add(w); });
+});
+
+/* hanger geometry (shared) */
+const hookCurve=new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0,-HOOK,0), new THREE.Vector3(0,-.055,0), new THREE.Vector3(0,-.012,.012),
+  new THREE.Vector3(0,.022,.004), new THREE.Vector3(0,.022,-.014), new THREE.Vector3(0,.004,-.022), new THREE.Vector3(0,-.014,-.016)]);
+const hookGeo=new THREE.TubeGeometry(hookCurve,40,.0028,8,false);
+const woodTex=new THREE.CanvasTexture(noiseCanvas(256,32,'#b48a5c',18,(g,w,h)=>{ for(let i=0;i<40;i++){ g.strokeStyle=`rgba(80,45,20,${.08+Math.random()*.1})`; g.lineWidth=1; g.beginPath(); const y=Math.random()*h; g.moveTo(0,y); g.bezierCurveTo(w*.3,y+Math.random()*6-3,w*.6,y+Math.random()*6-3,w,y); g.stroke(); } }));
+woodTex.encoding=THREE.sRGBEncoding;
+const wood=new THREE.MeshStandardMaterial({map:woodTex,roughness:.42,metalness:0,envMapIntensity:.8});
+function hangerBar(type){
+  const w = type==='tank'? .175 : type==='hoodie'? .19 : .18;
+  const yTop=-HOOK-.006, yEnd=-HOOK-.06;
+  const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(-w,yEnd,0),new THREE.Vector3(0,yTop+.035,0),new THREE.Vector3(w,yEnd,0));
+  return new THREE.TubeGeometry(curve,40,.0085,10,false);
+}
+const barGeos={tee:hangerBar('tee'),tank:hangerBar('tank'),hoodie:hangerBar('hoodie')};
+const ferrule=new THREE.CylinderGeometry(.006,.006,.018,12);
+
+/* garment meshes */
+const maskCache={};
+function garmentGeo(item,sign){
+  const masks=maskCache[item.type]||(maskCache[item.type]=buildMasks(item.type));
+  const geo=new THREE.PlaneGeometry(CW*S,CH*S,52,64);
+  const pos=geo.attributes.position, uv=geo.attributes.uv, T=THICK[item.type];
+  for(let i=0;i<pos.count;i++){
+    const u=uv.getX(i), v=1-uv.getY(i);
+    let h=clamp((sample(masks.soft,u,v)-.5)/.5,0,1); h=Math.sqrt(h);
+    const drop=Math.pow(v,1.3);
+    const fold=(Math.sin(u*Math.PI*7+item.seed)*.55+Math.sin(u*Math.PI*13+item.seed*2.1)*.3+Math.sin(u*Math.PI*3.3+item.seed*.7)*.5)*drop;
+    const bow=Math.sin(u*Math.PI)*0.012*(1-v);
+    pos.setZ(i, (sign*T*(.55+.45*(1-drop*.4)) + fold*.0075 + bow) * h);
+  }
+  geo.computeVertexNormals();
+  return {geo,masks};
+}
+
+const hangables=[]; // garments + dividers
+function makePhysics(o){ Object.assign(o,{x:0,vx:0,y:0,vy:0,z:0,vz:0,yaw:0,vyaw:0,tz:0,vtz:0,tx:0,vtx:0, tgt:new THREE.Vector3(), tYaw:0}); return o; }
+
+ITEMS.forEach((item,i)=>{
+  const pivot=new THREE.Group(); const swing=new THREE.Group(); const spin=new THREE.Group();
+  pivot.add(swing); swing.add(spin); scene.add(pivot);
+  const hook=new THREE.Mesh(hookGeo,chrome); hook.castShadow=true; spin.add(hook);
+  const fer=new THREE.Mesh(ferrule,chrome); fer.position.y=-HOOK+.004; spin.add(fer);
+  const bar=new THREE.Mesh(barGeos[item.type],wood); bar.castShadow=true; spin.add(bar);
+  const front=garmentGeo(item,1), back=garmentGeo(item,-1);
+  const ft=new THREE.CanvasTexture(paintGarment(item,false)), bt=new THREE.CanvasTexture(paintGarment(item,true));
+  [ft,bt].forEach(t=>{t.encoding=THREE.sRGBEncoding; t.anisotropy=renderer.capabilities.getMaxAnisotropy();});
+  const matF=new THREE.MeshStandardMaterial({map:ft,alphaTest:.5,alphaToCoverage:true,roughness:.93,metalness:0,envMapIntensity:.55,side:THREE.FrontSide});
+  const matB=new THREE.MeshStandardMaterial({map:bt,alphaTest:.5,alphaToCoverage:true,roughness:.93,metalness:0,envMapIntensity:.55,side:THREE.BackSide});
+  const g=new THREE.Group(); g.position.y=-HOOK-(CH/2-NECK[item.type])*S; spin.add(g);
+  const mF=new THREE.Mesh(front.geo,matF), mB=new THREE.Mesh(back.geo,matB);
+  [mF,mB].forEach(m=>{m.castShadow=true; m.receiveShadow=true; m.userData.item=i; m.userData.masks=front.masks; g.add(m);});
+  hangables.push(makePhysics({kind:'garment', i, item, pivot, swing, spin, meshes:[mF,mB], L:.38, carried:false, userYaw:0}));
+});
+
+// category dividers (round size-divider discs)
+function dividerTex(label){ const c=document.createElement('canvas'); c.width=c.height=512; const g=c.getContext('2d');
+  g.fillStyle='#f6f3ee'; g.beginPath(); g.arc(256,256,250,0,7); g.fill();
+  g.globalCompositeOperation='destination-out'; g.beginPath(); g.arc(256,104,30,0,7); g.fill(); g.fillRect(244,0,24,104); g.globalCompositeOperation='source-over';
+  g.strokeStyle='rgba(0,0,0,.12)'; g.lineWidth=4; g.beginPath(); g.arc(256,256,232,0,7); g.stroke();
+  g.fillStyle='#1c1a17'; g.textAlign='center'; g.textBaseline='middle'; fitText(g,label.toUpperCase(),360,74,900); g.fillText(label.toUpperCase(),256,290);
+  g.font='600 26px "JetBrains Mono", monospace'; g.fillStyle='#6b645a'; g.fillText('ΚΡΕΜΑΣΤΡΑ',256,370);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return t; }
+const dividers=[];
+CATS.forEach((cat,ci)=>{
+  const first=ITEMS.findIndex(it=>it.cat===ci);
+  const pivot=new THREE.Group(), swing=new THREE.Group(), spin=new THREE.Group(); pivot.add(swing); swing.add(spin); scene.add(pivot);
+  const tex=dividerTex(cat.name);
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(.075,64),new THREE.MeshStandardMaterial({map:tex,alphaTest:.5,roughness:.55,side:THREE.DoubleSide,envMapIntensity:.6}));
+  disc.position.y=-((256-104)/256)*.075; disc.castShadow=true; spin.add(disc);
+  const d=makePhysics({kind:'divider', ci, first, pivot, swing, spin, L:.12});
+  dividers.push(d); hangables.push(d);
+});
+
+/* ------------------------------------------------------------------ state & targets */
+let f=-1.2, fV=0, fT=3; // continuous focus index; start off-screen and glide in
+let dragging=false, carried=-1;
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const camPos=new THREE.Vector3(camXFor(fT),1.3,1.9), camLook=new THREE.Vector3(camXFor(fT),1.22,0);
+let camDist=2.55;
+const parallax={x:0,y:0,tx:0,ty:0};
+const holdTmp=new THREE.Vector3();
+
+function holdPoint(out){
+  const narrow=innerWidth<=720;
+  const nx = narrow ? 0 : -0.28, ny = narrow ? 0.5 : 0.06; // NDC of garment centre
+  out.set(nx,ny,0.5).unproject(camera).sub(camera.position).normalize();
+  const dist = narrow ? 1.9 : 1.2;
+  out.multiplyScalar(dist).add(camera.position); out.y += 0.4; // pivot is above the garment centre
+  return out;
+}
+function computeTargets(){
+  const fc=clamp(f,-.6,N-.4);
+  for(const h of hangables){
+    if(h.kind==='garment'){
+      const d=h.i-fc;
+      h.tgt.set(baseX(h.i)+spread(d), RAIL_Y, 0);
+      h.tYaw=-clamp(d,-1,1)*YAW_SIDE*(Math.abs(d)<1?Math.sqrt(Math.abs(d)):1)*1;
+      if(h.carried){ holdPoint(h.tgt); const dx=camera.position.x-h.tgt.x, dz=camera.position.z-h.tgt.z; h.tYaw=Math.atan2(dx,dz)+h.userYaw; }
+    }
+  }
+  for(const dv of dividers){
+    const a=dv.first>0? hangables[dv.first-1] : null, b=hangables[dv.first];
+    const bx=b.tgt.x, ax=a? a.tgt.x : bx-0.5;
+    dv.tgt.set(a? (ax+bx)/2 : bx-0.32, RAIL_Y, 0);
+    dv.tYaw = a ? (a.tYaw+b.tYaw)/2 : b.tYaw;
+  }
+}
+
+/* ------------------------------------------------------------------ physics */
+const G=9.81;
+function step(dt){
+  // focus spring
+  if(!dragging){ const k=reduce?90:46, c=2*Math.sqrt(k)*(reduce?1:.92); const a=k*(fT-f)-c*fV; fV+=a*dt; f+=fV*dt; }
+  computeTargets();
+  for(const h of hangables){
+    const k = h.carried ? 26 : 120, zeta = h.carried ? .78 : (reduce?1:.62), c=2*Math.sqrt(k)*zeta;
+    const ax=k*(h.tgt.x-h.x)-c*h.vx, ay=k*(h.tgt.y-h.y)-c*h.vy, az=k*(h.tgt.z-h.z)-c*h.vz;
+    h.vx+=ax*dt; h.vy+=ay*dt; h.vz+=az*dt; h.x+=h.vx*dt; h.y+=h.vy*dt; h.z+=h.vz*dt;
+    const w2=G/h.L, damp = reduce?7:(h.carried?2.2:2.1);
+    // lateral swing driven by rail acceleration (hook rocks on the rail)
+    const atz=-w2*Math.sin(h.tz)-damp*h.vtz-ax/h.L*.38; h.vtz+=atz*dt; h.tz+=h.vtz*dt;
+    // fore/aft swing about the rail axis
+    const atx=-w2*Math.sin(h.tx)-damp*h.vtx+az/h.L*.45; h.vtx+=atx*dt; h.tx+=h.vtx*dt;
+    h.tz=clamp(h.tz,-.5,.5); h.tx=clamp(h.tx,-.6,.6);
+    // yaw lags behind (hook twisting on the rail)
+    const ky=h.carried?18:34, cy=2*Math.sqrt(ky)*(reduce?1:.58); const ayw=ky*(h.tYaw-h.yaw)-cy*h.vyaw; h.vyaw+=ayw*dt; h.yaw+=h.vyaw*dt;
+  }
+}
+function apply(){
+  for(const h of hangables){
+    h.pivot.position.set(h.x,h.y,h.z);
+    h.swing.rotation.set(h.tx,0,h.tz);
+    h.spin.rotation.y=h.yaw;
+  }
+}
+// initialise positions at their targets (entrance glide comes from f)
+computeTargets(); for(const h of hangables){ h.x=h.tgt.x+ (h.kind==='garment'? -0.0:0); h.y=h.tgt.y; h.z=h.tgt.z; h.yaw=h.tYaw; }
+
+/* ------------------------------------------------------------------ camera */
+function layoutCamera(){
+  const asp=innerWidth/innerHeight; camera.aspect=asp;
+  const halfV=Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
+  camDist=Math.max(2.55, 0.46/(halfV*asp));
+  camera.updateProjectionMatrix();
+}
+layoutCamera();
+function updateCamera(dt){
+  const cx=camXFor(clamp(f,-.6,N-.4));
+  parallax.x+=(parallax.tx-parallax.x)*Math.min(1,dt*3); parallax.y+=(parallax.ty-parallax.y)*Math.min(1,dt*3);
+  const k=Math.min(1,dt*6);
+  camLook.x+=(cx-camLook.x)*k;
+  const tx=cx+parallax.x*.12, ty=1.32+parallax.y*.05, tz=camDist;
+  camPos.x+=(tx-camPos.x)*k; camPos.y+=(ty-camPos.y)*k; camPos.z+=(tz-camPos.z)*k;
+  camera.position.copy(camPos); camera.lookAt(camLook.x+parallax.x*.03, 1.24+(innerWidth<=720?.08:0), 0);
+  key.position.set(camLook.x+1.1,4.2,3.2); key.target.position.set(camLook.x,1,0);
+  fill.position.set(camLook.x-2.5,1.6,2); fill.target.position.set(camLook.x,1.2,0);
+  spot.position.set(camLook.x,3.1,1.3); spot.target.position.set(camLook.x,1.2,0);
+}
+
+/* ------------------------------------------------------------------ interaction */
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+const garmentMeshes=hangables.filter(h=>h.kind==='garment').flatMap(h=>h.meshes);
+function pick(clientX,clientY){
+  const r=canvasEl.getBoundingClientRect(); ndc.set((clientX-r.left)/r.width*2-1, -((clientY-r.top)/r.height)*2+1);
+  ray.setFromCamera(ndc,camera);
+  const hits=ray.intersectObjects(garmentMeshes,false);
+  for(const h of hits){ if(!h.uv) continue; const u=h.uv.x, v=1-h.uv.y; if(sample(h.object.userData.masks.hit,u,v)>.5) return h.object.userData.item; }
+  return -1;
+}
+const pxPerItem=()=>Math.max(70, innerHeight*0.16);
+let down=null, lastMove=null, hoverI=-1;
+canvasEl.addEventListener('pointerdown',e=>{
+  canvasEl.setPointerCapture(e.pointerId);
+  down={x:e.clientX,y:e.clientY,t:performance.now(),f0:f,moved:false,id:e.pointerId,yaw0: carried>=0?hangables[carried].userYaw:0};
+  lastMove={x:e.clientX,t:performance.now(),v:0};
+  dismissHint();
+});
+canvasEl.addEventListener('pointermove',e=>{
+  const r=canvasEl.getBoundingClientRect();
+  parallax.tx=((e.clientX-r.left)/r.width-.5)*2; parallax.ty=-((e.clientY-r.top)/r.height-.5)*2;
+  const now=performance.now();
+  if(down){
+    const dx=e.clientX-down.x;
+    if(!down.moved && Math.abs(dx)>6){ down.moved=true; if(carried<0){ dragging=true; canvasEl.classList.add('grabbing'); } }
+    if(down.moved){
+      if(carried>=0){ hangables[carried].userYaw=down.yaw0+dx*0.012; }
+      else {
+        let raw=down.f0-dx/pxPerItem();
+        if(raw<0) raw=raw*.35; if(raw>N-1) raw=N-1+(raw-(N-1))*.35;
+        const dtm=Math.max(1,now-lastMove.t); const inst=(raw-f)/(dtm/1000);
+        fV=fV*.6+inst*.4; f=raw; fT=f;
+      }
+    }
+    lastMove={x:e.clientX,t:now};
+  } else if(carried<0){
+    // brushing past garments nudges them
+    const i=pick(e.clientX,e.clientY);
+    if(i>=0){ const h=hangables[i]; const vx=e.movementX||0, vy=e.movementY||0; h.vtz+=clamp(vx,-40,40)*0.012; h.vtx+=clamp(-vy,-40,40)*0.006; h.vyaw+=clamp(vx,-40,40)*0.01; }
+    if(i!==hoverI){ hoverI=i; canvasEl.classList.toggle('hovering',i>=0); }
+  }
+});
+function endPointer(e){
+  if(!down) return;
+  const wasMoved=down.moved;
+  if(dragging){ dragging=false; canvasEl.classList.remove('grabbing');
+    const proj=f+fV*0.28; fT=clamp(Math.round(proj),0,N-1); }
+  else if(!wasMoved){
+    const i=pick(e.clientX,e.clientY);
+    if(carried<0 && i>=0){
+      if(i===Math.round(fT) && Math.abs(f-i)<.35) takeOff(i);
+      else { fT=i; const h=hangables[i]; h.vtx+=.8; }
+    }
+  }
+  down=null;
+}
+canvasEl.addEventListener('pointerup',endPointer);
+canvasEl.addEventListener('pointercancel',endPointer);
+canvasEl.addEventListener('pointerleave',()=>{parallax.tx=0;parallax.ty=0;});
+let wheelTimer=0;
+canvasEl.addEventListener('wheel',e=>{
+  e.preventDefault(); dismissHint();
+  const d=(Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY)*(e.deltaMode===1?16:1);
+  if(carried>=0){ hangables[carried].userYaw+=d*0.004; return; }
+  fT=clamp(fT+d*0.0045,-.25,N-.75);
+  clearTimeout(wheelTimer); wheelTimer=setTimeout(()=>{ fT=clamp(Math.round(fT),0,N-1); },140);
+},{passive:false});
+addEventListener('keydown',e=>{
+  if(e.target && (e.target.tagName==='BUTTON') && (e.key==='Enter'||e.key===' ')) return;
+  if(e.key==='ArrowRight'){ if(carried>=0) hangables[carried].userYaw+=.6; else go(1); e.preventDefault(); }
+  if(e.key==='ArrowLeft'){ if(carried>=0) hangables[carried].userYaw-=.6; else go(-1); e.preventDefault(); }
+  if((e.key==='Enter'||e.key===' ') && carried<0){ takeOff(Math.round(fT)); e.preventDefault(); }
+  if(e.key==='Escape' && carried>=0) putBack();
+});
+function go(dir){ fT=clamp(Math.round(fT)+dir,0,N-1); dismissHint(); }
+document.getElementById('prev').onclick=()=>go(-1);
+document.getElementById('next').onclick=()=>go(1);
+
+/* ------------------------------------------------------------------ UI */
+const tabsEl=document.getElementById('tabs');
+CATS.forEach((c,ci)=>{ const b=document.createElement('button'); b.id='tab-'+c.key; b.type='button';
+  b.innerHTML=`${c.name}<span>${ITEMS.filter(i=>i.cat===ci).length}</span>`;
+  b.onclick=()=>{ if(carried>=0) putBack(); const first=ITEMS.findIndex(i=>i.cat===ci); const cnt=ITEMS.filter(i=>i.cat===ci).length; fT=first+Math.floor((cnt-1)/2); dismissHint(); };
+  tabsEl.appendChild(b); });
+const fName=document.getElementById('fName'), fSub=document.getElementById('fSub');
+let lastFocus=-1, lastCat=-1;
+function updateUI(){
+  const i=clamp(Math.round(f),0,N-1);
+  if(i!==lastFocus){ lastFocus=i; const it=ITEMS[i]; const inCat=ITEMS.filter(x=>x.cat===it.cat); const pos=inCat.indexOf(it)+1;
+    fName.textContent=it.name; fSub.innerHTML=`<b>€${it.price}</b> · ${CATS[it.cat].name} ${pos}/${inCat.length}`; }
+  const c=ITEMS[i].cat; if(c!==lastCat){ lastCat=c; [...tabsEl.children].forEach((b,k)=>b.setAttribute('aria-pressed',String(k===c))); }
+}
+const sheet=document.getElementById('sheet'), focusbar=document.getElementById('focusbar');
+let selSize='M';
+function takeOff(i){
+  if(i<0||i>=N) return;
+  carried=i; const h=hangables[i]; h.carried=true; h.userYaw=0; h.vy+=1.2; h.vtx-=.6;
+  const it=ITEMS[i];
+  document.getElementById('sCat').textContent=CATS[it.cat].name;
+  document.getElementById('sName').textContent=it.name;
+  document.getElementById('sPrice').textContent='€'+it.price.toFixed(2).replace('.',',');
+  document.getElementById('sDesc').textContent=it.desc;
+  document.getElementById('sComp').textContent=it.comp;
+  document.getElementById('sGsm').textContent=it.gsm+' g/m²';
+  document.getElementById('sFit').textContent=it.fit;
+  const sz=document.getElementById('sizes'); sz.innerHTML='';
+  if(!it.stock[SIZES.indexOf(selSize)]) selSize=SIZES[it.stock.findIndex(Boolean)];
+  SIZES.forEach((s,k)=>{ const b=document.createElement('button'); b.type='button'; b.className='size'; b.id='size-'+s; b.textContent=s; b.disabled=!it.stock[k];
+    b.setAttribute('aria-pressed',String(s===selSize)); b.onclick=()=>{ selSize=s; [...sz.children].forEach(x=>x.setAttribute('aria-pressed',String(x===b))); updStock(); }; sz.appendChild(b); });
+  function updStock(){ const left=((i*3+SIZES.indexOf(selSize)*5)%7)+1; document.getElementById('sStock').textContent= left<=2? `Μόνο ${left} ακόμα` : 'Διαθέσιμο'; }
+  updStock();
+  sheet.classList.add('open'); sheet.setAttribute('aria-hidden','false'); focusbar.classList.add('away');
+  canvasEl.classList.remove('hovering');
+}
+function putBack(){
+  if(carried<0) return; const h=hangables[carried]; h.carried=false; h.userYaw=0; h.vtx+=.5;
+  fT=carried; carried=-1;
+  sheet.classList.remove('open'); sheet.setAttribute('aria-hidden','true'); focusbar.classList.remove('away');
+}
+document.getElementById('putBack').onclick=putBack;
+let cart=0; const cartEl=document.getElementById('cartCount'), toast=document.getElementById('toast'); let toastT=0;
+document.getElementById('addCart').onclick=()=>{ if(carried<0) return; cart++; cartEl.textContent=cart;
+  toast.textContent=`Προστέθηκε: ${ITEMS[carried].name} · ${selSize}`; toast.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>toast.classList.remove('show'),2200); };
+const hint=document.getElementById('hint'); let hinted=false;
+function dismissHint(){ if(hinted) return; hinted=true; setTimeout(()=>hint.classList.add('gone'),1800); }
+
+addEventListener('resize',()=>{ renderer.setSize(innerWidth,innerHeight); layoutCamera(); });
+
+/* ------------------------------------------------------------------ loop */
+let last=performance.now();
+function frame(now){
+  let dt=Math.min(1/30,(now-last)/1000); last=now;
+  const sub=3; for(let s=0;s<sub;s++) step(dt/sub);
+  apply(); updateCamera(dt); updateUI();
+  renderer.render(scene,camera);
+  requestAnimationFrame(frame);
+}
+updateCamera(1); requestAnimationFrame(frame);
+setTimeout(()=>document.getElementById('loading').classList.add('done'),120);
+}
+(function(){ let started=false; const go=()=>{ if(started) return; started=true; kremastraMain(); };
+  const fl = document.fonts && document.fonts.load ? Promise.all([document.fonts.load('900 52px Commissioner'),document.fonts.load('800 18px Commissioner')]) : Promise.resolve();
+  fl.then(go,go); setTimeout(go,2500); })();
+</script>
+</body>
+</html>
