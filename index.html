@@ -517,34 +517,74 @@ const hookGeo=new THREE.TubeGeometry(hookCurve,40,.0028,8,false);
 const woodTex=new THREE.CanvasTexture(noiseCanvas(256,32,'#b48a5c',18,(g,w,h)=>{ for(let i=0;i<40;i++){ g.strokeStyle=`rgba(80,45,20,${.08+Math.random()*.1})`; g.lineWidth=1; g.beginPath(); const y=Math.random()*h; g.moveTo(0,y); g.bezierCurveTo(w*.3,y+Math.random()*6-3,w*.6,y+Math.random()*6-3,w,y); g.stroke(); } }));
 woodTex.encoding=THREE.sRGBEncoding;
 const wood=new THREE.MeshStandardMaterial({map:woodTex,roughness:.42,metalness:0,envMapIntensity:.8});
-function hangerBar(type){
-  const w = type==='tank'? .175 : type==='hoodie'? .19 : .18;
-  const yTop=-HOOK-.006, yEnd=-HOOK-.06;
-  const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(-w,yEnd,0),new THREE.Vector3(0,yTop+.035,0),new THREE.Vector3(w,yEnd,0));
-  return new THREE.TubeGeometry(curve,40,.0085,10,false);
+/* The hanger is fitted to each garment: its arms follow the garment's own shoulder line a little
+   below the edge, so the wooden bar sits inside the shoulders and only the hook comes out of the collar. */
+const SHOULDER={tee:{d0:55,w:150,wb:150}, tank:{d0:40,w:70,wb:136}, hoodie:{d0:85,w:132,wb:138}}; // frame px from centre
+const CLEAR=13, BAR_R=.0085;
+const fitCache={};
+function fitHanger(type,cv,key){
+  if(fitCache[key]) return fitCache[key];
+  const W=cv.width, H=cv.height, sc=W/CW, d=cv.getContext('2d').getImageData(0,0,W,H).data;
+  const top=new Float32Array(CW).fill(NaN);
+  for(let x=0;x<CW;x++){ const X=Math.min(W-1,Math.round((x+.5)*sc)); for(let Y=0;Y<H;Y++){ if(d[(Y*W+X)*4+3]>128){ top[x]=Y/sc; break; } } }
+  const C=SHOULDER[type], wb=C.wb, c=new Float32Array(wb+1);
+  for(let dx=0;dx<=wb;dx++){ const l=top[clamp(Math.round(255.5-dx),0,CW-1)], r=top[clamp(Math.round(255.5+dx),0,CW-1)];
+    c[dx]= isNaN(l)? r : isNaN(r)? l : (l+r)/2; }
+  const sm=dx=>{ let s=0,n=0; for(let k=-6;k<=6;k++){ const v=c[clamp(dx+k,0,wb)]; if(!isNaN(v)){s+=v;n++;} } return n? s/n : NaN; };
+  const y=new Float32Array(wb+1);
+  for(let dx=C.d0;dx<=C.w;dx++){ const v=sm(dx); y[dx]= isNaN(v) ? (dx>C.d0? y[dx-1]+.5 : 60) : v+CLEAR; if(dx>C.d0) y[dx]=Math.max(y[dx],y[dx-1]); }
+  const s0=clamp((y[C.d0+8]-y[C.d0])/8,.15,1.2), sw=clamp((y[C.w]-y[C.w-10])/10,.22,.8);
+  for(let dx=0;dx<C.d0;dx++) y[dx]=y[C.d0]-s0*(C.d0*C.d0-dx*dx)/(2*C.d0);
+  for(let dx=C.w+1;dx<=wb;dx++) y[dx]=y[C.w]+sw*(dx-C.w);
+  const at=dx=>y[clamp(Math.round(Math.abs(dx)),0,wb)];
+  return fitCache[key]={y,at,wb,yc:y[0]};
 }
-const barGeos={tee:hangerBar('tee'),tank:hangerBar('tank'),hoodie:hangerBar('hoodie')};
+const barCache={};
+function barGeo(fit,key){
+  if(barCache[key]) return barCache[key];
+  const pts=[]; for(let dx=-fit.wb;dx<=fit.wb;dx+=6) pts.push(new THREE.Vector3(dx*S,(CH/2-fit.at(dx))*S,0));
+  return barCache[key]=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),90,BAR_R,10,false);
+}
+const barCap=new THREE.SphereGeometry(BAR_R,12,8);
 const ferrule=new THREE.CylinderGeometry(.006,.006,.018,12);
 
 /* garment meshes */
 const maskCache={};
-function garmentGeo(item,sign,src,key){
+function garmentGeo(item,sign,src,key,fit){
   key=key||item.type;
   const masks=maskCache[key]||(maskCache[key]=buildMasks(item.type,src));
   const geo=new THREE.PlaneGeometry(CW*S,CH*S,52,64);
   const pos=geo.attributes.position, uv=geo.attributes.uv, T=THICK[item.type];
+  const hood = src && item.type==='hoodie';
   for(let i=0;i<pos.count;i++){
-    const u=uv.getX(i), v=1-uv.getY(i);
-    let h=clamp((sample(masks.soft,u,v)-.5)/.5,0,1); h=Math.sqrt(h);
-    if(src){ // a real photo already has its folds: keep the card almost flat, just a soft bow
-      pos.setZ(i, (sign*.004 + Math.sin(u*Math.PI)*.008*(1-v*.6)) * h); continue; }
+    const u=uv.getX(i), v=1-uv.getY(i), yv=v*CH, dx=u*CW-255.5;
+    let h=clamp((sample(masks.soft,u,v)-.5)/.28,0,1); h=Math.sqrt(h);
+    if(src){ // a real photo already has its folds: the two layers sit around the hanger and close in towards the hem
+      const below=clamp((yv-fit.yc)/(CH*.9),0,1), t=.0055+.0105*Math.exp(-below*5);
+      let z=sign*(t + Math.sin(u*Math.PI)*.006*(1-v*.6))*h, Y=(CH/2-yv)*S; // front bulges forward, back bulges back
+      if(hood){ // the hood can't stand up on a hanger: it leans back from the neck, curving a little as it goes
+        const hinge=fit.at(dx)-CLEAR+6, wgt=1-clamp((Math.abs(dx)-SHOULDER.hoodie.d0)/15,0,1);
+        if(yv<hinge && wgt>0){ const d=(hinge-yv)*S, th0=.95*wgt, rho=.3;
+          Y=(CH/2-hinge)*S+rho*(Math.sin(th0+d/rho)-Math.sin(th0)); z+=-rho*(Math.cos(th0)-Math.cos(th0+d/rho)); }
+      }
+      pos.setY(i,Y); pos.setZ(i,z); continue; }
     const drop=Math.pow(v,1.3);
     const fold=(Math.sin(u*Math.PI*7+item.seed)*.55+Math.sin(u*Math.PI*13+item.seed*2.1)*.3+Math.sin(u*Math.PI*3.3+item.seed*.7)*.5)*drop;
     const bow=Math.sin(u*Math.PI)*0.012*(1-v);
-    pos.setZ(i, (sign*T*(.55+.45*(1-drop*.4)) + fold*.0075 + bow) * h);
+    pos.setZ(i, (sign*Math.max(T,.012)*(.55+.45*(1-drop*.4)) + fold*.0075 + bow) * h);
   }
   geo.computeVertexNormals();
   return {geo,masks};
+}
+// cloth that bends: the hem lags behind the swing (uBend) and behind the turn of the hook (uTwist)
+function bendable(mat,U){
+  mat.onBeforeCompile=sh=>{ sh.uniforms.uBend=U.uBend; sh.uniforms.uTwist=U.uTwist; sh.uniforms.uTop=U.uTop;
+    sh.vertexShader='uniform vec2 uBend;\nuniform float uTwist;\nuniform float uTop;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+`#include <begin_vertex>
+  { float vv=clamp((uTop-transformed.y)/0.62,0.,1.25); float w=vv*vv; float a=uTwist*pow(vv,1.3); float cs=cos(a), sn=sin(a);
+    transformed.xz=vec2(cs*transformed.x+sn*transformed.z, -sn*transformed.x+cs*transformed.z);
+    transformed.x+=uBend.x*w; transformed.z+=uBend.y*w; }`); };
+  return mat;
 }
 
 const hangables=[]; // garments + dividers
@@ -555,25 +595,32 @@ ITEMS.forEach((item,i)=>{
   pivot.add(swing); swing.add(spin); scene.add(pivot);
   const hook=new THREE.Mesh(hookGeo,chrome); hook.castShadow=true; spin.add(hook);
   const fer=new THREE.Mesh(ferrule,chrome); fer.position.y=-HOOK+.004; spin.add(fer);
-  const bar=new THREE.Mesh(barGeos[item.type],wood); bar.castShadow=true; spin.add(bar);
-  let fc,bc,key=null,neck=NECK[item.type];
+  let fc,bc,key=null;
   if(PHOTOS){
     if(item.photo && PHOTOS[item.photo]){ key=item.photo; fc=rawTexture(PHOTOS[key],false);
       bc = item.photoBack && PHOTOS[item.photoBack] ? rawTexture(PHOTOS[item.photoBack],false) : rawTexture(PHOTOS[key],true); }
     else { key='p-'+item.type; fc=photoTexture(item,PHOTOS[item.type+'Front'],false); bc=photoTexture(item,PHOTOS[item.type+'Back'],true); }
-    neck=PHOTO_NECK[item.type];
   } else { fc=paintGarment(item,false); bc=paintGarment(item,true); }
-  const front=garmentGeo(item,1,key&&fc,key), back=garmentGeo(item,-1,key&&fc,key);
+  const fkey=key||item.type, fit=fitHanger(item.type,fc,fkey);
+  const front=garmentGeo(item,1,key&&fc,key,fit), back=garmentGeo(item,-1,key&&fc,key,fit);
   const ft=new THREE.CanvasTexture(fc), bt=new THREE.CanvasTexture(bc);
   [ft,bt].forEach(t=>{t.encoding=THREE.sRGBEncoding; t.anisotropy=renderer.capabilities.getMaxAnisotropy();});
+  const U={uBend:{value:new THREE.Vector2()}, uTwist:{value:0}, uTop:{value:(CH/2-fit.yc)*S}};
   // photos are shown as photographed (no 3D lighting or tone mapping); drawn fallback keeps the lit cloth
-  const mk=(map,side)=> key ? new THREE.MeshBasicMaterial({map,alphaTest:.5,alphaToCoverage:true,side,toneMapped:false})
-    : new THREE.MeshStandardMaterial({map,alphaTest:.5,alphaToCoverage:true,roughness:.93,metalness:0,envMapIntensity:.55,side});
+  const mk=(map,side)=> bendable(key ? new THREE.MeshBasicMaterial({map,alphaTest:.5,alphaToCoverage:true,side,toneMapped:false})
+    : new THREE.MeshStandardMaterial({map,alphaTest:.5,alphaToCoverage:true,roughness:.93,metalness:0,envMapIntensity:.55,side}),U);
+  // the shadow uses the garment's own cut-out (not the whole picture rectangle) and bends with it
+  const mkDepth=map=> bendable(new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map,alphaTest:.5}),U);
   const matF=mk(ft,THREE.FrontSide), matB=mk(bt,THREE.BackSide);
-  const g=new THREE.Group(); g.position.y=-HOOK-(CH/2-neck)*S; spin.add(g);
+  // the bar's centre hangs from the hook; the garment hangs from the bar
+  const g=new THREE.Group(); g.position.y=-HOOK-.004-(CH/2-fit.yc)*S; spin.add(g);
+  const bar=new THREE.Mesh(barGeo(fit,fkey),wood); bar.castShadow=true; g.add(bar);
+  [-1,1].forEach(sd=>{ const cap=new THREE.Mesh(barCap,wood); cap.position.set(sd*fit.wb*S,(CH/2-fit.at(fit.wb))*S,0); g.add(cap); });
   const mF=new THREE.Mesh(front.geo,matF), mB=new THREE.Mesh(back.geo,matB);
+  mF.customDepthMaterial=mkDepth(ft); mB.customDepthMaterial=mkDepth(bt);
   [mF,mB].forEach(m=>{m.castShadow=true; m.receiveShadow=true; m.userData.item=i; m.userData.masks=front.masks; g.add(m);});
-  hangables.push(makePhysics({kind:'garment', i, item, pivot, swing, spin, meshes:[mF,mB], L:.38, carried:false, userYaw:0}));
+  hangables.push(makePhysics({kind:'garment', i, item, pivot, swing, spin, meshes:[mF,mB], U, L:.38, carried:false, mode:'rail', path:null, userYaw:0, spinHeld:false,
+    bx:0,vbx:0,bz:0,vbz:0,tw:0,vtw:0}));
 });
 
 // category dividers (round size-divider discs)
@@ -606,10 +653,10 @@ const holdTmp=new THREE.Vector3();
 
 function holdPoint(out){
   const narrow=innerWidth<=720;
-  const nx = narrow ? 0 : -0.28, ny = narrow ? 0.5 : 0.06; // NDC of garment centre
+  const nx = narrow ? 0 : -0.28, ny = narrow ? 0.36 : 0.06; // NDC of garment centre
   out.set(nx,ny,0.5).unproject(camera).sub(camera.position).normalize();
-  const dist = narrow ? 1.9 : 1.2;
-  out.multiplyScalar(dist).add(camera.position); out.y += 0.4; // pivot is above the garment centre
+  const dist = narrow ? 2.05 : 1.34;
+  out.multiplyScalar(dist).add(camera.position); out.y += 0.37; // pivot is above the garment centre
   return out;
 }
 function computeTargets(){
@@ -619,7 +666,11 @@ function computeTargets(){
       const d=h.i-fc;
       h.tgt.set(baseX(h.i)+spread(d), RAIL_Y, 0);
       h.tYaw=-clamp(d,-1,1)*YAW_SIDE*(Math.abs(d)<1?Math.sqrt(Math.abs(d)):1)*1;
-      if(h.carried){ holdPoint(h.tgt); const dx=camera.position.x-h.tgt.x, dz=camera.position.z-h.tgt.z; h.tYaw=Math.atan2(dx,dz)+h.userYaw; }
+      if(h.carried){ holdPoint(h.tgt); const dx=camera.position.x-h.tgt.x, dz=camera.position.z-h.tgt.z; h.tYaw=Math.atan2(dx,dz)+h.userYaw;
+        if(h.mode==='held' && !reduce){ // a hand never holds perfectly still
+          h.tgt.x+=Math.sin(clock*.9)*.004; h.tgt.y+=Math.sin(clock*1.3+1)*.003; h.tYaw+=Math.sin(clock*.6)*.025; }
+        if(h.path) h.tYaw+=Math.sin(Math.PI*h.path.e)*.22; } // the garment turns a little while it is carried over
+      else if(h.path) h.tYaw*=.5;
     }
   }
   for(const dv of dividers){
@@ -632,22 +683,47 @@ function computeTargets(){
 
 /* ------------------------------------------------------------------ physics */
 const G=9.81;
+let clock=0;
+const ease=s=> (1-Math.cos(Math.PI*s))/2; // gentle start and stop, like a hand carrying it
+function bez(t,a,b,c,d){ const u=1-t; return u*u*u*a+3*u*u*t*b+3*u*t*t*c+t*t*t*d; }
 function step(dt){
+  clock+=dt;
   // focus spring
   if(!dragging){ const k=reduce?90:46, c=2*Math.sqrt(k)*(reduce?1:.92); const a=k*(fT-f)-c*fV; fV+=a*dt; f+=fV*dt; }
   computeTargets();
   for(const h of hangables){
-    const k = h.carried ? 26 : 120, zeta = h.carried ? .78 : (reduce?1:.62), c=2*Math.sqrt(k)*zeta;
-    const ax=k*(h.tgt.x-h.x)-c*h.vx, ay=k*(h.tgt.y-h.y)-c*h.vy, az=k*(h.tgt.z-h.z)-c*h.vz;
-    h.vx+=ax*dt; h.vy+=ay*dt; h.vz+=az*dt; h.x+=h.vx*dt; h.y+=h.vy*dt; h.z+=h.vz*dt;
-    const w2=G/h.L, damp = reduce?7:(h.carried?2.2:2.1);
-    // lateral swing driven by rail acceleration (hook rocks on the rail)
-    const atz=-w2*Math.sin(h.tz)-damp*h.vtz-ax/h.L*.38; h.vtz+=atz*dt; h.tz+=h.vtz*dt;
+    let ax,ay,az;
+    if(h.path){ // carried along a curve: lifted off the rail, brought to the viewer (or back), the hook leads and the cloth follows
+      const p=h.path; p.t+=dt; const s=clamp(p.t/p.dur,0,1), e=ease(s); p.e=e;
+      const nx=bez(e,p.p0.x,p.p0.x+p.c1.x,h.tgt.x+p.c2.x,h.tgt.x), ny=bez(e,p.p0.y,p.p0.y+p.c1.y,h.tgt.y+p.c2.y,h.tgt.y), nz=bez(e,p.p0.z,p.p0.z+p.c1.z,h.tgt.z+p.c2.z,h.tgt.z);
+      const nvx=(nx-h.x)/dt, nvy=(ny-h.y)/dt, nvz=(nz-h.z)/dt;
+      ax=clamp((nvx-h.vx)/dt,-40,40); ay=(nvy-h.vy)/dt; az=clamp((nvz-h.vz)/dt,-40,40);
+      h.x=nx; h.y=ny; h.z=nz; h.vx=nvx; h.vy=nvy; h.vz=nvz;
+      if(s>=1){ h.path=null;
+        if(h.mode==='off') h.mode='held';
+        else { h.mode='rail'; if(!reduce){ h.vtx+=.35; h.vy=-.25; h.vyaw+=.4*(Math.random()-.5); } } } // the hook drops onto the rail and the garment rocks
+    } else {
+      const held=h.mode==='held', k = held ? 60 : 120, zeta = held ? .9 : (reduce?1:.62), c=2*Math.sqrt(k)*zeta;
+      ax=k*(h.tgt.x-h.x)-c*h.vx; ay=k*(h.tgt.y-h.y)-c*h.vy; az=k*(h.tgt.z-h.z)-c*h.vz;
+      h.vx+=ax*dt; h.vy+=ay*dt; h.vz+=az*dt; h.x+=h.vx*dt; h.y+=h.vy*dt; h.z+=h.vz*dt;
+    }
+    const w2=G/h.L, damp = reduce?7:(h.path?2:h.carried?2.2:2.1), cpl=h.path?.45:.38;
+    // lateral swing driven by the hook's acceleration (pendulum on a moving pivot)
+    const atz=-w2*Math.sin(h.tz)-damp*h.vtz-ax/h.L*cpl; h.vtz+=atz*dt; h.tz+=h.vtz*dt;
     // fore/aft swing about the rail axis
-    const atx=-w2*Math.sin(h.tx)-damp*h.vtx+az/h.L*.45; h.vtx+=atx*dt; h.tx+=h.vtx*dt;
+    const atx=-w2*Math.sin(h.tx)-damp*h.vtx+az/h.L*cpl*1.15; h.vtx+=atx*dt; h.tx+=h.vtx*dt;
     h.tz=clamp(h.tz,-.5,.5); h.tx=clamp(h.tx,-.6,.6);
-    // yaw lags behind (hook twisting on the rail)
-    const ky=h.carried?18:34, cy=2*Math.sqrt(ky)*(reduce?1:.58); const ayw=ky*(h.tYaw-h.yaw)-cy*h.vyaw; h.vyaw+=ayw*dt; h.yaw+=h.vyaw*dt;
+    // yaw: on the rail the hook twists and lags; in the hand it follows the hand; let go, it coasts and settles
+    let ky=34, zy=.58;
+    if(h.carried||h.path){ ky=h.spinHeld?70:11; zy=h.spinHeld?.9:.86; }
+    const cy=2*Math.sqrt(ky)*(reduce?1:zy); const ayw=ky*(h.tYaw-h.yaw)-cy*h.vyaw; h.vyaw+=ayw*dt; h.yaw+=h.vyaw*dt;
+    if(h.U && !reduce){ // the cloth lags behind: the hem trails the swing and the turn
+      const ahx=h.L*atz, ahz=-h.L*atx, co=Math.cos(h.yaw), si=Math.sin(h.yaw);
+      const lx=ahx*co-ahz*si, lz=ahx*si+ahz*co, kb=100, cb=6.4;
+      h.vbx+=(-kb*h.bx-cb*h.vbx-.8*lx)*dt; h.bx=clamp(h.bx+h.vbx*dt,-.06,.06);
+      h.vbz+=(-kb*h.bz-cb*h.vbz-.8*lz)*dt; h.bz=clamp(h.bz+h.vbz*dt,-.06,.06);
+      h.vtw+=(-67*h.tw-4.9*h.vtw-.5*ayw)*dt; h.tw=clamp(h.tw+h.vtw*dt,-.7,.7);
+    }
   }
 }
 function apply(){
@@ -655,6 +731,7 @@ function apply(){
     h.pivot.position.set(h.x,h.y,h.z);
     h.swing.rotation.set(h.tx,0,h.tz);
     h.spin.rotation.y=h.yaw;
+    if(h.U){ h.U.uBend.value.set(h.bx,h.bz); h.U.uTwist.value=h.tw; }
     if(h.meshes && h.meshes[0].material.isMeshBasicMaterial){ // turned-away photos sit in the rack's shade
       const l=.6+.4*Math.abs(Math.cos(h.yaw)); h.meshes[0].material.color.setScalar(l); h.meshes[1].material.color.setScalar(l); }
   }
@@ -678,7 +755,7 @@ function updateCamera(dt){
   const tx=cx+parallax.x*.12, ty=1.32+parallax.y*.05, tz=camDist;
   camPos.x+=(tx-camPos.x)*k; camPos.y+=(ty-camPos.y)*k; camPos.z+=(tz-camPos.z)*k;
   camera.position.copy(camPos); camera.lookAt(camLook.x+parallax.x*.03, 1.24+(innerWidth<=720?.08:0), 0);
-  key.position.set(camLook.x+1.1,4.2,3.2); key.target.position.set(camLook.x,1,0);
+  key.position.set(camLook.x+.75,3.3,3.6); key.target.position.set(camLook.x,1.1,0); // fairly frontal: each garment's shadow falls close behind it
   fill.position.set(camLook.x-2.5,1.6,2); fill.target.position.set(camLook.x,1.2,0);
   spot.position.set(camLook.x,3.1,1.3); spot.target.position.set(camLook.x,1.2,0);
 }
@@ -697,7 +774,7 @@ const pxPerItem=()=>Math.max(70, innerHeight*0.16);
 let down=null, lastMove=null, hoverI=-1;
 canvasEl.addEventListener('pointerdown',e=>{
   canvasEl.setPointerCapture(e.pointerId);
-  down={x:e.clientX,y:e.clientY,t:performance.now(),f0:f,moved:false,id:e.pointerId,yaw0: carried>=0?hangables[carried].userYaw:0};
+  down={x:e.clientX,y:e.clientY,t:performance.now(),f0:f,moved:false,id:e.pointerId,yaw0: carried>=0?hangables[carried].userYaw:0, w:0};
   lastMove={x:e.clientX,t:performance.now(),v:0};
   dismissHint();
 });
@@ -709,7 +786,8 @@ canvasEl.addEventListener('pointermove',e=>{
     const dx=e.clientX-down.x;
     if(!down.moved && Math.abs(dx)>6){ down.moved=true; if(carried<0){ dragging=true; canvasEl.classList.add('grabbing'); } }
     if(down.moved){
-      if(carried>=0){ hangables[carried].userYaw=down.yaw0+dx*0.012; }
+      if(carried>=0){ const h=hangables[carried], ny=down.yaw0+dx*0.0125, dtm=Math.max(8,now-lastMove.t)/1000;
+        down.w=down.w*.5+((ny-h.userYaw)/dtm)*.5; h.userYaw=ny; h.spinHeld=true; }
       else {
         let raw=down.f0-dx/pxPerItem();
         if(raw<0) raw=raw*.35; if(raw>N-1) raw=N-1+(raw-(N-1))*.35;
@@ -728,6 +806,9 @@ canvasEl.addEventListener('pointermove',e=>{
 function endPointer(e){
   if(!down) return;
   const wasMoved=down.moved;
+  if(carried>=0 && wasMoved){ const h=hangables[carried]; // let go: it keeps turning a little, then settles on its front or back
+    if(performance.now()-lastMove.t>90) down.w=0;
+    h.userYaw=Math.round((h.userYaw+clamp(down.w,-10,10)*.18)/Math.PI)*Math.PI; h.spinHeld=false; }
   if(dragging){ dragging=false; canvasEl.classList.remove('grabbing');
     const proj=f+fV*0.28; fT=clamp(Math.round(proj),0,N-1); }
   else if(!wasMoved){
@@ -746,14 +827,15 @@ let wheelTimer=0;
 canvasEl.addEventListener('wheel',e=>{
   e.preventDefault(); dismissHint();
   const d=(Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY)*(e.deltaMode===1?16:1);
-  if(carried>=0){ hangables[carried].userYaw+=d*0.004; return; }
+  if(carried>=0){ const h=hangables[carried]; h.userYaw+=d*0.004; h.spinHeld=true;
+    clearTimeout(wheelTimer); wheelTimer=setTimeout(()=>{ h.userYaw=Math.round(h.userYaw/Math.PI)*Math.PI; h.spinHeld=false; },160); return; }
   fT=clamp(fT+d*0.0045,-.25,N-.75);
   clearTimeout(wheelTimer); wheelTimer=setTimeout(()=>{ fT=clamp(Math.round(fT),0,N-1); },140);
 },{passive:false});
 addEventListener('keydown',e=>{
   if(e.target && (e.target.tagName==='BUTTON') && (e.key==='Enter'||e.key===' ')) return;
-  if(e.key==='ArrowRight'){ if(carried>=0) hangables[carried].userYaw+=.6; else go(1); e.preventDefault(); }
-  if(e.key==='ArrowLeft'){ if(carried>=0) hangables[carried].userYaw-=.6; else go(-1); e.preventDefault(); }
+  if(e.key==='ArrowRight'){ if(carried>=0) hangables[carried].userYaw+=Math.PI; else go(1); e.preventDefault(); }
+  if(e.key==='ArrowLeft'){ if(carried>=0) hangables[carried].userYaw-=Math.PI; else go(-1); e.preventDefault(); }
   if((e.key==='Enter'||e.key===' ') && carried<0){ takeOff(Math.round(fT)); e.preventDefault(); }
   if(e.key==='Escape' && carried>=0) putBack();
 });
@@ -779,7 +861,9 @@ const sheet=document.getElementById('sheet'), focusbar=document.getElementById('
 let selSize='M';
 function takeOff(i){
   if(i<0||i>=N) return;
-  carried=i; const h=hangables[i]; h.carried=true; h.userYaw=0; h.vy+=1.2; h.vtx-=.6;
+  carried=i; const h=hangables[i]; h.carried=true; h.userYaw=0; h.spinHeld=false; h.mode='off';
+  // lift the hook off the rail first, then bring it forward and down to the viewer
+  h.path={t:0, e:0, dur:reduce?.3:1.15, p0:new THREE.Vector3(h.x,h.y,h.z), c1:new THREE.Vector3(0,.17,.03), c2:new THREE.Vector3(0,.06,-.3)};
   const it=ITEMS[i];
   document.getElementById('sCat').textContent=CATS[it.cat].name;
   document.getElementById('sName').textContent=it.name;
@@ -798,7 +882,10 @@ function takeOff(i){
   canvasEl.classList.remove('hovering');
 }
 function putBack(){
-  if(carried<0) return; const h=hangables[carried]; h.carried=false; h.userYaw=0; h.vtx+=.5;
+  if(carried<0) return; const h=hangables[carried]; h.carried=false; h.userYaw=0; h.spinHeld=false; h.mode='back';
+  // carry it back above the rail and lower the hook onto it
+  h.yaw-=Math.round(h.yaw/(2*Math.PI))*2*Math.PI; // a garment spun round goes back the short way
+  h.path={t:0, e:0, dur:reduce?.3:1.05, p0:new THREE.Vector3(h.x,h.y,h.z), c1:new THREE.Vector3(0,.06,-.18), c2:new THREE.Vector3(0,.16,0)};
   fT=carried; carried=-1;
   sheet.classList.remove('open'); sheet.setAttribute('aria-hidden','true'); focusbar.classList.remove('away');
 }
@@ -820,7 +907,11 @@ function frame(now){
   renderer.render(scene,camera);
   requestAnimationFrame(frame);
 }
-updateCamera(1); requestAnimationFrame(frame);
+updateCamera(1);
+if(/[?&]still\b/.test(location.search)){ // for screenshots: time advances only when asked (window.kremastraStep(seconds))
+  window.kremastraStep=sec=>{ for(let n=Math.round(sec*60);n>0;n--){ for(let s=0;s<3;s++) step(1/180); apply(); updateCamera(1/60); updateUI(); } renderer.render(scene,camera); };
+  window.kremastraStep(0);
+} else requestAnimationFrame(frame);
 setTimeout(()=>document.getElementById('loading').classList.add('done'),120);
 }
 (function(){
