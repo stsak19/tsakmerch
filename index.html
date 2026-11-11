@@ -346,11 +346,45 @@ function paintGarment(item, back){
   return c;
 }
 
+/* ------------------------------------------------------------------ real photos
+   An item with photo:'img/x.png' (and optional photoBack) replaces its drawn garment.
+   Transparent PNGs are used as-is; photos on a plain background get it removed by
+   flood-filling from the edges. The garment is fitted into the 512x640 garment frame. */
+function loadImage(url){ return new Promise((res,rej)=>{ const im=new Image(); if(/^https?:/.test(url)) im.crossOrigin='anonymous'; im.onload=()=>res(im); im.onerror=rej; im.src=url; }); }
+function cutBackground(g,w,h){
+  const id=g.getImageData(0,0,w,h), d=id.data;
+  const corners=[[1,1],[w-2,1],[1,h-2],[w-2,h-2]];
+  if(corners.some(([x,y])=>d[(y*w+x)*4+3]<250)) return; // already has transparency
+  let br=0,bg=0,bb=0; corners.forEach(([x,y])=>{const k=(y*w+x)*4; br+=d[k]; bg+=d[k+1]; bb+=d[k+2];}); br/=4; bg/=4; bb/=4;
+  const tol=42*42, seen=new Uint8Array(w*h), stack=[];
+  for(let x=0;x<w;x++){ stack.push(x, (h-1)*w+x); } for(let y=0;y<h;y++){ stack.push(y*w, y*w+w-1); }
+  while(stack.length){ const i=stack.pop(); if(seen[i]) continue; seen[i]=1; const k=i*4;
+    const dr=d[k]-br, dg=d[k+1]-bg, db=d[k+2]-bb; if(dr*dr+dg*dg+db*db>tol) continue;
+    d[k+3]=0; const x=i%w; if(x>0) stack.push(i-1); if(x<w-1) stack.push(i+1); if(i>=w) stack.push(i-w); if(i<w*(h-1)) stack.push(i+w); }
+  // soften the cut edge by one pixel
+  for(let i=w;i<w*(h-1);i++){ const k=i*4; if(d[k+3]===255 && (d[k-1]===0||d[k+7]===0||d[k-w*4+3]===0||d[k+w*4+3]===0)) d[k+3]=150; }
+  g.putImageData(id,0,0);
+}
+function photoCanvas(im,mirror){
+  // 1. cut background at working resolution and find the garment's bounding box
+  const sc=Math.min(1, 900/Math.max(im.width,im.height)); const w=Math.round(im.width*sc), h=Math.round(im.height*sc);
+  const t=document.createElement('canvas'); t.width=w; t.height=h; const tg=t.getContext('2d'); tg.drawImage(im,0,0,w,h); cutBackground(tg,w,h);
+  const d=tg.getImageData(0,0,w,h).data; let x0=w,y0=h,x1=0,y1=0;
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){ if(d[(y*w+x)*4+3]>128){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; } }
+  if(x1<=x0||y1<=y0) return null;
+  // 2. fit into the garment frame: top centred at y=20, max 470 wide, 610 tall
+  const bw=x1-x0+1, bh=y1-y0+1, f=Math.min(470/bw, 610/bh), dw=bw*f, dh=bh*f;
+  const c=document.createElement('canvas'); c.width=CW; c.height=CH; const g=c.getContext('2d');
+  if(mirror){ g.translate(CW,0); g.scale(-1,1); }
+  g.drawImage(t,x0,y0,bw,bh,(CW-dw)/2,20,dw,dh);
+  return c;
+}
+
 /* ------------------------------------------------------------------ height & hit masks */
 const MW=128, MH=160;
-function buildMasks(type){
+function buildMasks(type,src){
   const c=document.createElement('canvas'); c.width=MW; c.height=MH; const g=c.getContext('2d');
-  g.scale(MW/CW,MH/CH); g.fillStyle='#fff'; g.fill(PATHS[type]());
+  if(src){ g.drawImage(src,0,0,MW,MH); } else { g.scale(MW/CW,MH/CH); g.fillStyle='#fff'; g.fill(PATHS[type]()); }
   const d=g.getImageData(0,0,MW,MH).data; const hit=new Float32Array(MW*MH);
   for(let i=0;i<MW*MH;i++) hit[i]=d[i*4+3]/255;
   let a=Float32Array.from(hit), b=new Float32Array(MW*MH); const R=4;
@@ -455,8 +489,8 @@ const ferrule=new THREE.CylinderGeometry(.006,.006,.018,12);
 
 /* garment meshes */
 const maskCache={};
-function garmentGeo(item,sign){
-  const masks=maskCache[item.type]||(maskCache[item.type]=buildMasks(item.type));
+function garmentGeo(item,sign,masksIn){
+  const masks=masksIn||maskCache[item.type]||(maskCache[item.type]=buildMasks(item.type));
   const geo=new THREE.PlaneGeometry(CW*S,CH*S,52,64);
   const pos=geo.attributes.position, uv=geo.attributes.uv, T=THICK[item.type];
   for(let i=0;i<pos.count;i++){
@@ -488,7 +522,25 @@ ITEMS.forEach((item,i)=>{
   const g=new THREE.Group(); g.position.y=-HOOK-(CH/2-NECK[item.type])*S; spin.add(g);
   const mF=new THREE.Mesh(front.geo,matF), mB=new THREE.Mesh(back.geo,matB);
   [mF,mB].forEach(m=>{m.castShadow=true; m.receiveShadow=true; m.userData.item=i; m.userData.masks=front.masks; g.add(m);});
-  hangables.push(makePhysics({kind:'garment', i, item, pivot, swing, spin, meshes:[mF,mB], L:.38, carried:false, userYaw:0}));
+  hangables.push(makePhysics({kind:'garment', i, item, pivot, swing, spin, meshes:[mF,mB], group:g, L:.38, carried:false, userYaw:0}));
+});
+
+// swap drawn garments for real photos as they load (drawn version stays if a photo fails)
+ITEMS.forEach((item,i)=>{
+  if(!item.photo) return;
+  Promise.all([loadImage(item.photo), item.photoBack ? loadImage(item.photoBack) : null]).then(([fi,bi])=>{
+    const fc=photoCanvas(fi,false), bc=bi ? photoCanvas(bi,true) : photoCanvas(fi,true);
+    if(!fc||!bc) return;
+    const h=hangables[i], masks=buildMasks(item.type,fc);
+    const front=garmentGeo(item,1,masks), back=garmentGeo(item,-1,masks);
+    [[h.meshes[0],front.geo,fc],[h.meshes[1],back.geo,bc]].forEach(([m,geo,cv])=>{
+      m.geometry.dispose(); m.geometry=geo; m.userData.masks=masks;
+      const t=new THREE.CanvasTexture(cv); t.encoding=THREE.sRGBEncoding; t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      m.material.map.dispose(); m.material.map=t; m.material.roughness=.85; m.material.needsUpdate=true;
+    });
+    h.group.position.y=-HOOK-(CH/2-30)*S;
+    h.vtz+=.15; // a small settle swing when the real garment arrives
+  }).catch(()=>console.warn('Photo not found for',item.name,item.photo));
 });
 
 // category dividers (round size-divider discs)
