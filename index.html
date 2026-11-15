@@ -712,19 +712,21 @@ function sample(arr,u,v){ // u,v in 0..1 (v=0 top)
 
 /* ------------------------------------------------------------------ three setup */
 const stage=document.getElementById('stage');
-/* How much the graphics card can take. A computer that draws in software (no graphics acceleration) or that was slow
-   last time starts light: fewer pixels, no multisampling, smaller shadow map. ?hq and ?lite force either way. */
+/* How much the graphics card can take. The picture stays sharp by default. Only a computer that draws in software
+   (no graphics acceleration) starts a little lighter, and the loop steps down gently only when frames are really slow.
+   ?hq and ?lite force either way. */
 let quality=1, lite=/[?&]lite\b/.test(location.search);
 const HQ=/[?&]hq\b/.test(location.search);
+try{ localStorage.removeItem('kremastra.q'); }catch(e){} // an earlier version remembered a low setting for a week
 if(!HQ){
-  try{ const q=JSON.parse(localStorage.getItem('kremastra.q')||'null'); if(q && Date.now()-q.t<6048e5 && q.q<.75){ quality=Math.max(.55,q.q); lite=true; } }catch(e){}
   try{ const gl=document.createElement('canvas').getContext('webgl'), ext=gl && gl.getExtension('WEBGL_debug_renderer_info'), name=ext? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
-    if(/swiftshader|llvmpipe|software|basic render/i.test(name)){ lite=true; quality=Math.min(quality,.6); }
+    if(/swiftshader|llvmpipe|software|basic render/i.test(name)) lite=true;
     const lose=gl && gl.getExtension('WEBGL_lose_context'); if(lose) lose.loseContext(); }catch(e){}
 }
-const renderer=new THREE.WebGLRenderer({antialias:!lite, powerPreference:'high-performance'});
+if(lite) quality=.75;
+const renderer=new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
 // never draw more pixels than a weak graphics card can fill; the loop lowers this further if frames come slowly
-const pixelRatio=()=>Math.min(window.devicePixelRatio||1, 2, Math.max(1,Math.sqrt(3.2e6/(innerWidth*innerHeight))))*quality;
+const pixelRatio=()=>Math.min(window.devicePixelRatio||1, 2, Math.max(1,Math.sqrt(6e6/(innerWidth*innerHeight))))*quality;
 renderer.setPixelRatio(pixelRatio());
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputEncoding=THREE.sRGBEncoding;
@@ -733,7 +735,7 @@ renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 stage.appendChild(renderer.domElement);
 const canvasEl=renderer.domElement;
 
-const ANISO=lite?1:Math.min(4,renderer.capabilities.getMaxAnisotropy());
+const ANISO=lite?2:Math.min(8,renderer.capabilities.getMaxAnisotropy());
 const scene=new THREE.Scene();
 const WALL=0xcbc3b6;
 scene.background=new THREE.Color(WALL);
@@ -966,7 +968,7 @@ function sharpenNext(){ const c=clamp(Math.round(f),0,N-1); let best=null, bd=1e
 /* ------------------------------------------------------------------ state & targets */
 let f=-1.2, fV=0, fT=3; // continuous focus index; start off-screen and glide in
 let dragging=false, carried=-1;
-let last=performance.now(), running=false, calm=0, awakeUntil=0, slow=0, slowSum=0, warm=0; // drawing loop state (see frame())
+let last=performance.now(), running=false, calm=0, awakeUntil=0, slow=0, slowSum=0, warm=0, sharpTick=0; // drawing loop state (see frame())
 const STILL=/[?&]still\b/.test(location.search);
 let night=0, nightT=0; // 0 = shop lights on, 1 = night window with one spotlight
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1463,14 +1465,14 @@ function frame(now){
   const sub=3; for(let s=0;s<sub;s++) step(dt/sub);
   apply(); updateCamera(dt); updateUI();
   renderer.render(scene,camera);
-  // frames that keep coming slowly: draw fewer pixels (in proportion to how slow), then a smaller shadow map; remembered for next time
-  if(++warm>4 && raw<1500 && !HQ){ slowSum+=raw; if(++slow>=6){ const avg=slowSum/slow; slow=0; slowSum=0;
-    if(avg>34 && quality>.55){ quality=Math.max(.55,quality*clamp(Math.sqrt(26/avg),.6,.9)); warm=0; renderer.setPixelRatio(pixelRatio());
-      if(quality<.7 && key.shadow.mapSize.x>1024){ key.shadow.mapSize.set(1024,1024); if(key.shadow.map){ key.shadow.map.dispose(); key.shadow.map=null; } }
-      try{ localStorage.setItem('kremastra.q',JSON.stringify({q:quality,t:Date.now()})); }catch(e){} } } }
+  // only when frames stay really slow (under 20 a second for seconds on end): draw a few less pixels, never below 70%
+  if(++warm>30 && raw<1500 && !HQ){ slowSum+=raw; if(++slow>=90){ const avg=slowSum/slow; slow=0; slowSum=0;
+    if(avg>50 && quality>.7){ quality=Math.max(.7,quality*.85); warm=0; renderer.setPixelRatio(pixelRatio()); } } }
+  // garments start painted small; make them sharp one at a time, a few frames apart, nearest first
+  if(PHOTOS && ++sharpTick>=12){ sharpTick=0; if(sharpenNext()){ warm=Math.min(warm,28); last=performance.now(); } }
   calm = moving() || now<awakeUntil ? 0 : calm+1;
   if(calm>20){ // at rest: first make the garments sharp one by one, then stop drawing until something happens
-    if(PHOTOS && sharpenNext()){ warm=0; requestAnimationFrame(frame); return; }
+    if(PHOTOS && sharpenNext()){ requestAnimationFrame(frame); return; }
     running=false; return; }
   requestAnimationFrame(frame);
 }
