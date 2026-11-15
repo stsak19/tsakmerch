@@ -30,7 +30,7 @@ body{margin:0}
   --line:rgba(22,19,15,.16);
   --stamp:#2440b8;         /* stamp-ink blue: prices, selection, focus */
   --wine:#8a2433;          /* favourites */
-  --glass:rgba(244,240,231,.76);
+  --glass:rgba(244,240,231,.9);
   --glass-solid:#f4f0e7;
   --on-wall:#16130f;
   --on-wall-muted:rgba(22,19,15,.62);
@@ -45,7 +45,7 @@ body{margin:0}
 }
 :root[data-theme="night"]{
   --wall:#151416;
-  --glass:rgba(30,29,32,.7);
+  --glass:rgba(30,29,32,.86);
   --glass-solid:#232226;
   --on-wall:#f1ece2;
   --on-wall-muted:rgba(241,236,226,.62);
@@ -72,7 +72,7 @@ header > *{pointer-events:auto}
 .brand{display:flex;align-items:baseline;gap:10px;line-height:1;margin:0;font-weight:inherit}
 .brand b{font:900 34px/0.9 var(--f-display);letter-spacing:.005em;text-transform:uppercase}
 .brand span{font:500 12px/1 var(--f-ui);color:var(--on-wall-muted)}
-.glass{background:var(--glass);backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);border:1px solid var(--glass-line);color:var(--on-wall);transition:background .6s,border-color .6s,color .6s}
+.glass{background:var(--glass);border:1px solid var(--glass-line);color:var(--on-wall);transition:background .6s,border-color .6s,color .6s}
 nav.tabs{display:flex;gap:2px;border-radius:999px;padding:4px}
 nav.tabs button{font:600 13px/1 var(--f-ui);border:0;background:transparent;padding:9px 14px;border-radius:999px;cursor:pointer;display:flex;gap:7px;align-items:center;transition:background .2s,color .2s}
 nav.tabs button span{font-weight:500;font-size:11px;opacity:.55;font-variant-numeric:tabular-nums}
@@ -271,13 +271,25 @@ dialog::backdrop{background:rgba(18,14,10,.5)}
   .take{padding:0 12px}
   .hint{bottom:calc(var(--sb) + 118px);font-size:11.5px;white-space:normal;text-align:center;width:calc(100% - 32px)}
   .hint .k{display:none}
-  aside.sheet{top:auto;left:var(--sl);right:var(--sr);bottom:calc(var(--sb) + 54px);width:auto;height:min(55vh,470px);transform:translateY(calc(100% + 120px));transform-origin:50% 0}
+  /* phone: a short tag at the bottom, the garment hangs in the free space above it */
+  .dock.away{opacity:0;pointer-events:none}
+  aside.sheet{top:auto;left:var(--sl);right:var(--sr);bottom:calc(var(--sb) + 10px);width:auto;height:clamp(300px,40vh,360px);transform:translateY(calc(100% + 60px));transform-origin:50% 0}
   aside.sheet::before{display:none}
-  .tag-scroll{padding:50px 16px 12px;gap:13px}
-  .tag-actions{padding:10px 16px 14px}
-  .sheet h2{font-size:34px}
-  .price{font-size:27px;margin-top:8px}
-  .dock.away .dockcard{padding:6px 8px 6px}
+  .tag-scroll{padding:46px 16px 12px;gap:12px}
+  .tag-scroll > :nth-child(1){order:1} .tag-scroll > :nth-child(4){order:2} .tag-scroll > :nth-child(2){order:3} .tag-scroll > :nth-child(3){order:4} .tag-scroll > :nth-child(n+5){order:5}
+  .tag-top{align-items:center}
+  .cat{display:none}
+  .sheet h2{font-size:27px}
+  .price{font-size:24px;margin:0;padding:5px 7px 3px}
+  .tag .x{top:6px;right:30px}
+  .note{min-height:0;margin-top:6px}
+  .note:empty{display:none}
+  .tag-actions{padding:10px 16px 14px;flex-direction:row}
+  .buy,.back{display:contents}
+  .btn.ghost{display:none}
+  .back .icon{width:50px;height:50px;border-radius:14px}
+  #addPrice{display:none}
+  .btn.primary{justify-content:center}
   aside.drawer{width:100vw;padding-left:var(--sl)}
 }
 @media (prefers-reduced-motion:reduce){
@@ -592,16 +604,16 @@ function paintGarment(item, back){
    as shading (grey = 200 means "the fabric's own colour"), so every item gets its colour
    and print painted flat and then multiplied by the photo's real folds and light.
    An item with photo:'<key>' uses that real colour photo as-is instead. */
-const PW=CW*2, PH=CH*2;
+const TS_LO=1, TS_HI=2; // garments are painted small for the rail first and repainted sharp when there is time (or when picked)
 const PHOTO_NECK={tee:31, tank:31, hoodie:112};   // frame y that sits on the hanger
 const ANCH={ // print positions on the photo frame (512x640 coords)
   tee:{chest:150, logo:[330,116], pocket:[294,94,60,70]},
   tank:{chest:170, logo:[300,150]},
   hoodie:{chest:300, logo:[318,244], sleeve:[[118,232,112,540],[394,232,400,540]]}
 };
-function pixels(img){ const c=document.createElement('canvas'); c.width=PW; c.height=PH; const g=c.getContext('2d'); g.drawImage(img,0,0,PW,PH); return g.getImageData(0,0,PW,PH); }
+function pixels(img,ts){ const W=CW*ts, H=CH*ts, c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d'); g.drawImage(img,0,0,W,H); return g.getImageData(0,0,W,H); }
 const pixCache=new Map();
-function pix(img){ if(!pixCache.has(img)) pixCache.set(img,pixels(img)); return pixCache.get(img); }
+function pix(img,ts){ const k=img.src+'@'+ts; if(!pixCache.has(k)) pixCache.set(k,pixels(img,ts)); return pixCache.get(k); }
 /* the owner's artwork, cut out of the mockup as white ink (img/art-*.png): small logo on the chest, panther on the back.
    [centre x, centre y, width] on the 512x640 garment frame */
 const ART_POS={ tee:{logo:[256,165,42], panther:[256,198,190]}, tank:{logo:[256,190,40], panther:[256,222,168]}, hoodie:{logo:[256,285,46], panther:[256,365,212]} };
@@ -633,7 +645,7 @@ function paintPrints(g,item){
 const blurCache=new Map();
 function foldMap(img){
   if(blurCache.has(img)) return blurCache.get(img);
-  const sd=pix(img).data, n=PW*PH, a=new Float32Array(n), b=new Float32Array(n), R=9;
+  const PW=CW, PH=CH, sd=pix(img,1).data, n=PW*PH, a=new Float32Array(n), b=new Float32Array(n), R=5; // the folds are broad: the 512x640 frame is enough
   for(let i=0;i<n;i++) a[i]=sd[i*4+3]>0 ? sd[i*4]/200 : 1;
   for(let pass=0;pass<2;pass++){
     for(let y=0;y<PH;y++){ let acc=0; const row=y*PW;
@@ -643,31 +655,39 @@ function foldMap(img){
   }
   blurCache.set(img,a); return a;
 }
-function photoTexture(item, img, back){
-  const sd=pix(img).data, B=foldMap(img), out=new ImageData(PW,PH), o=out.data;
+function photoTexture(item, img, back, ts){
+  const PW=CW*ts, PH=CH*ts, sd=pix(img,ts).data, B=foldMap(img), out=new ImageData(PW,PH), o=out.data;
   // print layer on its own, so it can be bent along the folds before it is laid on the fabric
   const c=document.createElement('canvas'); c.width=PW; c.height=PH; const g=c.getContext('2d');
-  g.scale(2,2); if(item.print==='stathis') paintArt(g,item,back); else if(!back || item.print==='stripes' || item.print==='sleeve') paintPrints(g,item);
+  g.scale(ts,ts); if(item.print==='stathis') paintArt(g,item,back); else if(!back || item.print==='stripes' || item.print==='sleeve') paintPrints(g,item);
   const pd=g.getImageData(0,0,PW,PH).data;
+  // only the part of the garment that carries the print needs the fold lookup
+  let bx0=0, by0=0, bx1=PW, by1=PH;
+  if(item.print==='stathis' && PHOTOS){ const im=PHOTOS[back?'artPanther':'artLogo'], [cx,cy,w]=ART_POS[item.type][back?'panther':'logo'], h=w*im.naturalHeight/im.naturalWidth, m=16;
+    bx0=(cx-w/2-m)*ts; bx1=(cx+w/2+m)*ts; by0=(cy-h/2-m)*ts; by1=(cy+h/2+m)*ts; }
+  else if(item.print==='none'){ bx1=0; by1=0; }
   const col=parseInt(item.color.slice(1),16), cr=col>>16, cg=(col>>8)&255, cb=col&255;
   const ink=parseInt(item.ink.slice(1),16), ir=ink>>16, ig=(ink>>8)&255, ib=ink&255;
   const edge=item.print==='edge' && item.type==='tank', ribbed=!!item.ribbed;
-  const K=150; // fold displacement strength (px per unit of shading slope)
-  for(let y=0,k=0;y<PH;y++) for(let x=0;x<PW;x++,k+=4){
+  const K=75*ts; // fold displacement strength (px per unit of shading slope)
+  for(let y=0,k=0;y<PH;y++){ const rowIn=y>=by0 && y<by1, fy=Math.min(CH-1,(y/ts)|0);
+   for(let x=0;x<PW;x++,k+=4){
     const a=sd[k+3]; if(a===0) continue;
     let S=sd[k]/200; if(a<250 && S>1) S=1; if(ribbed) S*= (x%9<3)?.9:1.02;
     let r=cr, gg=cg, b=cb;
     if(edge){ const t=sd[k+1]/255; r+=(ir-r)*t; gg+=(ig-gg)*t; b+=(ib-b)*t; }
-    const i=y*PW+x, xl=x>2?i-2:i, xr=x<PW-3?i+2:i, yu=y>2?i-2*PW:i, yd=y<PH-3?i+2*PW:i;
-    const sx=Math.min(PW-1,Math.max(0,Math.round(x+(B[xr]-B[xl])*K))), sy=Math.min(PH-1,Math.max(0,Math.round(y+(B[yd]-B[yu])*K)));
-    const q=(sy*PW+sx)*4, pa=pd[q+3]/255*.95; // ink lets a little fabric through
-    if(pa>0){ r+=(pd[q]-r)*pa; gg+=(pd[q+1]-gg)*pa; b+=(pd[q+2]-b)*pa; }
+    if(rowIn && x>=bx0 && x<bx1){
+      const fx=Math.min(CW-1,(x/ts)|0), i=fy*CW+fx, xl=fx>0?i-1:i, xr=fx<CW-1?i+1:i, yu=fy>0?i-CW:i, yd=fy<CH-1?i+CW:i;
+      const sx=Math.min(PW-1,Math.max(0,Math.round(x+(B[xr]-B[xl])*K))), sy=Math.min(PH-1,Math.max(0,Math.round(y+(B[yd]-B[yu])*K)));
+      const q=(sy*PW+sx)*4, pa=pd[q+3]/255*.95; // ink lets a little fabric through
+      if(pa>0){ r+=(pd[q]-r)*pa; gg+=(pd[q+1]-gg)*pa; b+=(pd[q+2]-b)*pa; }
+    }
     o[k]=r*S; o[k+1]=gg*S; o[k+2]=b*S; o[k+3]=a;
-  }
+  }}
   g.setTransform(1,0,0,1,0,0); g.putImageData(out,0,0); return c;
 }
 function rawTexture(img, mirror){
-  const c=document.createElement('canvas'); c.width=PW; c.height=PH; const g=c.getContext('2d');
+  const PW=CW*TS_HI, PH=CH*TS_HI, c=document.createElement('canvas'); c.width=PW; c.height=PH; const g=c.getContext('2d');
   if(mirror){ g.translate(PW,0); g.scale(-1,1); } g.drawImage(img,0,0,PW,PH); return c;
 }
 
@@ -692,8 +712,20 @@ function sample(arr,u,v){ // u,v in 0..1 (v=0 top)
 
 /* ------------------------------------------------------------------ three setup */
 const stage=document.getElementById('stage');
-const renderer=new THREE.WebGLRenderer({antialias:true});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+/* How much the graphics card can take. A computer that draws in software (no graphics acceleration) or that was slow
+   last time starts light: fewer pixels, no multisampling, smaller shadow map. ?hq and ?lite force either way. */
+let quality=1, lite=/[?&]lite\b/.test(location.search);
+const HQ=/[?&]hq\b/.test(location.search);
+if(!HQ){
+  try{ const q=JSON.parse(localStorage.getItem('kremastra.q')||'null'); if(q && Date.now()-q.t<6048e5 && q.q<.75){ quality=Math.max(.55,q.q); lite=true; } }catch(e){}
+  try{ const gl=document.createElement('canvas').getContext('webgl'), ext=gl && gl.getExtension('WEBGL_debug_renderer_info'), name=ext? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
+    if(/swiftshader|llvmpipe|software|basic render/i.test(name)){ lite=true; quality=Math.min(quality,.6); }
+    const lose=gl && gl.getExtension('WEBGL_lose_context'); if(lose) lose.loseContext(); }catch(e){}
+}
+const renderer=new THREE.WebGLRenderer({antialias:!lite, powerPreference:'high-performance'});
+// never draw more pixels than a weak graphics card can fill; the loop lowers this further if frames come slowly
+const pixelRatio=()=>Math.min(window.devicePixelRatio||1, 2, Math.max(1,Math.sqrt(3.2e6/(innerWidth*innerHeight))))*quality;
+renderer.setPixelRatio(pixelRatio());
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
@@ -701,6 +733,7 @@ renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 stage.appendChild(renderer.domElement);
 const canvasEl=renderer.domElement;
 
+const ANISO=lite?1:Math.min(4,renderer.capabilities.getMaxAnisotropy());
 const scene=new THREE.Scene();
 const WALL=0xcbc3b6;
 scene.background=new THREE.Color(WALL);
@@ -718,9 +751,11 @@ const camera=new THREE.PerspectiveCamera(36,innerWidth/innerHeight,0.05,40);
   scene.environment=pm.fromScene(es,0.035).texture; pm.dispose();
 })();
 
+const AMB=.42;
 const hemi=new THREE.HemisphereLight(0xfff6ea,0x5a4a3c,0.55); scene.add(hemi);
+const amb=new THREE.AmbientLight(0xfff1e0,AMB); scene.add(amb); // stands in for the room's bounce light on wall and floor
 const key=new THREE.DirectionalLight(0xfff0dc,1.25); key.position.set(1.1,4.2,3.2); key.castShadow=true;
-key.shadow.mapSize.set(2048,2048); key.shadow.camera.left=-2.6; key.shadow.camera.right=2.6; key.shadow.camera.top=2.4; key.shadow.camera.bottom=-0.4; key.shadow.camera.near=0.5; key.shadow.camera.far=9;
+key.shadow.mapSize.set(lite?1024:2048,lite?1024:2048); key.shadow.camera.left=-2.6; key.shadow.camera.right=2.6; key.shadow.camera.top=2.4; key.shadow.camera.bottom=-0.4; key.shadow.camera.near=0.5; key.shadow.camera.far=9;
 key.shadow.bias=-0.0006; key.shadow.normalBias=0.015; key.shadow.radius=7; scene.add(key); scene.add(key.target);
 const fill=new THREE.DirectionalLight(0xdbe4f0,0.35); fill.position.set(-2.5,1.6,2); scene.add(fill); scene.add(fill.target);
 const spot=new THREE.SpotLight(0xffe9cc,1.2,6,0.5,0.7,1.2); spot.position.set(0,3.1,1.3); scene.add(spot); scene.add(spot.target);
@@ -730,12 +765,12 @@ function noiseCanvas(w,h,baseHex,amp,fn){ const c=document.createElement('canvas
   const id=g.getImageData(0,0,w,h),d=id.data; for(let i=0;i<d.length;i+=4){const n=(Math.random()-.5)*amp; d[i]+=n; d[i+1]+=n; d[i+2]+=n;} g.putImageData(id,0,0); return c; }
 const wallTex=new THREE.CanvasTexture(noiseCanvas(512,512,'#cdc5b8',10,(g,w,h)=>{ for(let i=0;i<60;i++){ g.fillStyle=`rgba(${Math.random()<.5?255:90},${Math.random()<.5?240:80},220,.025)`; g.beginPath(); g.arc(Math.random()*w,Math.random()*h,20+Math.random()*80,0,7); g.fill(); } }));
 wallTex.wrapS=wallTex.wrapT=THREE.RepeatWrapping; wallTex.repeat.set(8,2); wallTex.encoding=THREE.sRGBEncoding;
-const wall=new THREE.Mesh(new THREE.PlaneGeometry(40,6),new THREE.MeshStandardMaterial({map:wallTex,roughness:.95,envMapIntensity:.4}));
+const wall=new THREE.Mesh(new THREE.PlaneGeometry(40,6),new THREE.MeshPhongMaterial({map:wallTex,specular:0x000000,shininess:1}));
 wall.position.set(0,3,-0.62); wall.receiveShadow=true; scene.add(wall);
 const skirting=new THREE.Mesh(new THREE.BoxGeometry(40,.09,.02),new THREE.MeshStandardMaterial({color:0xe8e1d5,roughness:.6})); skirting.position.set(0,.045,-0.61); scene.add(skirting);
 const floorTex=new THREE.CanvasTexture(noiseCanvas(512,512,'#8f6b4a',14,(g,w,h)=>{ const rows=8; for(let r=0;r<rows;r++){ const y=r*h/rows; let x=-Math.random()*200; while(x<w){ const L=160+Math.random()*220; g.fillStyle=`hsl(${26+Math.random()*6},${32+Math.random()*10}%,${32+Math.random()*10}%)`; g.fillRect(x,y,L,h/rows); g.fillStyle='rgba(0,0,0,.35)'; g.fillRect(x,y,2,h/rows); for(let k=0;k<6;k++){ g.fillStyle='rgba(0,0,0,.06)'; g.fillRect(x, y+Math.random()*h/rows, L, 1);} x+=L; } g.fillStyle='rgba(0,0,0,.4)'; g.fillRect(0,y,w,2);} }));
-floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping; floorTex.repeat.set(10,3); floorTex.encoding=THREE.sRGBEncoding; floorTex.anisotropy=renderer.capabilities.getMaxAnisotropy();
-const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,10),new THREE.MeshStandardMaterial({map:floorTex,roughness:.55,envMapIntensity:.6}));
+floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping; floorTex.repeat.set(10,3); floorTex.encoding=THREE.sRGBEncoding; floorTex.anisotropy=ANISO;
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,10),new THREE.MeshPhongMaterial({map:floorTex,specular:0x2a2520,shininess:18}));
 floor.rotation.x=-Math.PI/2; floor.position.z=3; floor.receiveShadow=true; scene.add(floor);
 
 /* ------------------------------------------------------------------ rack layout */
@@ -826,7 +861,7 @@ function sampleD(arr,u,v){
 function garmentGeo(item,sign,src,key,fit,dist){
   key=key||item.type;
   const masks=maskCache[key]||(maskCache[key]=buildMasks(item.type,src));
-  const geo=new THREE.PlaneGeometry(CW*S,CH*S,64,80);
+  const geo=new THREE.PlaneGeometry(CW*S,CH*S,48,60);
   const pos=geo.attributes.position, uv=geo.attributes.uv, T=THICK[item.type];
   const hood = src && item.type==='hoodie';
   for(let i=0;i<pos.count;i++){
@@ -873,14 +908,14 @@ ITEMS.forEach((item,i)=>{
   if(PHOTOS){
     if(item.photo && PHOTOS[item.photo]){ key=item.photo; fc=rawTexture(PHOTOS[key],false);
       bc = item.photoBack && PHOTOS[item.photoBack] ? rawTexture(PHOTOS[item.photoBack],false) : rawTexture(PHOTOS[key],true); }
-    else { key='p-'+item.type; fc=photoTexture(item,PHOTOS[item.type+'Front'],false); bc=photoTexture(item,PHOTOS[item.type+'Back'],true); }
+    else { key='p-'+item.type; fc=photoTexture(item,PHOTOS[item.type+'Front'],false,TS_LO); bc=photoTexture(item,PHOTOS[item.type+'Back'],true,TS_LO); item.lo=true; }
   } else { fc=paintGarment(item,false); bc=paintGarment(item,true); }
   item.frontCanvas=fc;
   const fkey=key||item.type, fit=fitHanger(item.type,[fc,bc],fkey);
   const dist=edgeDistance(fkey,[fc,bc]);
   const front=garmentGeo(item,1,key&&fc,key,fit,dist), back=garmentGeo(item,-1,key&&fc,key,fit,dist);
   const ft=new THREE.CanvasTexture(fc), bt=new THREE.CanvasTexture(bc);
-  [ft,bt].forEach(t=>{t.encoding=THREE.sRGBEncoding; t.anisotropy=renderer.capabilities.getMaxAnisotropy();});
+  [ft,bt].forEach(t=>{t.encoding=THREE.sRGBEncoding; t.anisotropy=ANISO;});
   const U={uBend:{value:new THREE.Vector2()}, uTwist:{value:0}, uTop:{value:(CH/2-fit.yc)*S}};
   // photos are shown as photographed (no 3D lighting or tone mapping); drawn fallback keeps the lit cloth
   const mk=(map,side)=> bendable(key ? new THREE.MeshBasicMaterial({map,alphaTest:.5,alphaToCoverage:true,side,toneMapped:false})
@@ -895,8 +930,9 @@ ITEMS.forEach((item,i)=>{
   [-1,1].forEach(sd=>{ const cap=new THREE.Mesh(barCap,wood); cap.position.set(sd*fit.wb*S,(CH/2-fit.at(fit.wb))*S,0); g.add(cap); });
   const mF=new THREE.Mesh(front.geo,matF), mB=new THREE.Mesh(back.geo,matB);
   mF.customDepthMaterial=mkDepth(ft); mB.customDepthMaterial=mkDepth(bt);
-  [mF,mB].forEach(m=>{m.castShadow=true; m.receiveShadow=true; m.userData.item=i; m.userData.masks=front.masks; g.add(m);});
-  hangables.push(makePhysics({kind:'garment', i, item, pivot, swing, spin, meshes:[mF,mB], U, L:.38, carried:false, mode:'rail', path:null, userYaw:0, spinHeld:false,
+  mF.castShadow=true; // front and back share one outline: one of them is enough for the shadow
+  [mF,mB].forEach(m=>{m.receiveShadow=true; m.userData.item=i; m.userData.masks=front.masks; g.add(m);});
+  hangables.push(makePhysics({kind:'garment', i, item, pivot, swing, spin, meshes:[mF,mB], tex:[ft,bt], U, L:.38, carried:false, mode:'rail', path:null, userYaw:0, spinHeld:false,
     bx:0,vbx:0,bz:0,vbz:0,tw:0,vtw:0}));
 });
 
@@ -919,9 +955,19 @@ CATS.forEach((cat,ci)=>{
   dividers.push(d); hangables.push(d);
 });
 
+// repaint one garment at full sharpness (about 50 ms); done for the one you pick, and for the rest while nothing moves
+function sharpen(h){ const it=h.item; if(!it.lo) return false; it.lo=false;
+  const fc=photoTexture(it,PHOTOS[it.type+'Front'],false,TS_HI), bc=photoTexture(it,PHOTOS[it.type+'Back'],true,TS_HI);
+  h.tex[0].image=fc; h.tex[1].image=bc; h.tex[0].needsUpdate=h.tex[1].needsUpdate=true; it.frontCanvas=fc; return true; }
+function sharpenNext(){ const c=clamp(Math.round(f),0,N-1); let best=null, bd=1e9;
+  for(let i=0;i<N;i++){ const h=hangables[i]; if(h.item.lo && Math.abs(i-c)<bd){ bd=Math.abs(i-c); best=h; } }
+  return best ? sharpen(best) : false; }
+
 /* ------------------------------------------------------------------ state & targets */
 let f=-1.2, fV=0, fT=3; // continuous focus index; start off-screen and glide in
 let dragging=false, carried=-1;
+let last=performance.now(), running=false, calm=0, awakeUntil=0, slow=0, slowSum=0, warm=0; // drawing loop state (see frame())
+const STILL=/[?&]still\b/.test(location.search);
 let night=0, nightT=0; // 0 = shop lights on, 1 = night window with one spotlight
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const camPos=new THREE.Vector3(camXFor(fT),1.3,1.9), camLook=new THREE.Vector3(camXFor(fT),1.22,0);
@@ -929,11 +975,15 @@ let camDist=2.55;
 const parallax={x:0,y:0,tx:0,ty:0};
 const holdTmp=new THREE.Vector3();
 
+let holdBox=null, lookDrop=0; // on a phone: the free band between the header and the tag, and how far the view is tilted down
+function measureHold(){ holdBox = innerWidth<=720 ? {top:document.querySelector('header').offsetHeight, bot:sheet.offsetTop} : null; }
+const halfFov=()=>Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
 function holdPoint(out){
-  const narrow=innerWidth<=720;
-  const nx = narrow ? 0 : -0.28, ny = narrow ? 0.46 : 0.06; // NDC of garment centre
+  let nx=-0.28, ny=0.06, dist=1.34; // NDC of garment centre, distance from the camera
+  if(holdBox){ const band=Math.max(140,holdBox.bot-holdBox.top);
+    nx=0; ny=1-(holdBox.top+holdBox.bot)/innerHeight; // centre of the band
+    dist=clamp(CH*S*innerHeight/(2*halfFov()*band*.9), 1.3, camDist-.12); } // as large as fits there, never behind the rail
   out.set(nx,ny,0.5).unproject(camera).sub(camera.position).normalize();
-  const dist = narrow ? 2.8 : 1.34;
   out.multiplyScalar(dist).add(camera.position); out.y += 0.37; // pivot is above the garment centre
   return out;
 }
@@ -1046,6 +1096,7 @@ function layoutCamera(){
   camera.updateProjectionMatrix();
 }
 layoutCamera();
+const railTmp=new THREE.Vector3(), hookTmp=new THREE.Vector3();
 function updateCamera(dt){
   const cx=camXFor(clamp(f,-.6,N-.4));
   parallax.x+=(parallax.tx-parallax.x)*Math.min(1,dt*3); parallax.y+=(parallax.ty-parallax.y)*Math.min(1,dt*3);
@@ -1053,7 +1104,12 @@ function updateCamera(dt){
   camLook.x+=(cx-camLook.x)*k;
   const tx=cx+parallax.x*.12, ty=1.32+parallax.y*.05, tz=camDist;
   camPos.x+=(tx-camPos.x)*k; camPos.y+=(ty-camPos.y)*k; camPos.z+=(tz-camPos.z)*k;
-  camera.position.copy(camPos); camera.lookAt(camLook.x+parallax.x*.03, 1.24+(innerWidth<=720?.08:0), 0);
+  // phone, garment in hand: tilt the view down until the rail sits where the held hook is, so the garment comes forward instead of climbing
+  if(holdBox && carried>=0){ const h=hangables[carried], wpp=2*halfFov()*camDist/innerHeight;
+    railTmp.set(camLook.x,RAIL_Y,0).project(camera); hookTmp.set(h.tgt.x,h.tgt.y,h.tgt.z).project(camera);
+    lookDrop=clamp(lookDrop+(hookTmp.y-railTmp.y)*innerHeight/2*wpp*Math.min(1,dt*5),0,.6); }
+  else lookDrop+=(0-lookDrop)*k;
+  camera.position.copy(camPos); camera.lookAt(camLook.x+parallax.x*.03, 1.24+(innerWidth<=720?.08:0)-lookDrop, 0); camera.updateMatrixWorld();
   key.position.set(camLook.x+.75,3.3,3.6); key.target.position.set(camLook.x,1.1,0); // fairly frontal: each garment's shadow falls close behind it
   fill.position.set(camLook.x-2.5,1.6,2); fill.target.position.set(camLook.x,1.2,0);
   spot.position.set(camLook.x,3.1,1.3); spot.target.position.set(camLook.x,1.2,0);
@@ -1063,7 +1119,7 @@ const DAY=new THREE.Color(WALL), NIGHT=new THREE.Color(0x151416); let lit=false;
 function light(n){ const mix=(a,b)=>a+(b-a)*n; lit=true;
   scene.background.copy(DAY).lerp(NIGHT,n); scene.fog.color.copy(scene.background);
   hemi.intensity=mix(.55,.06); key.intensity=mix(1.25,.2); fill.intensity=mix(.35,.05); spot.intensity=mix(1.2,3.4); spot.angle=mix(.5,.4);
-  wall.material.envMapIntensity=mix(.4,.03); floor.material.envMapIntensity=mix(.6,.08);
+  amb.intensity=mix(AMB,.03);
 }
 
 /* ------------------------------------------------------------------ interaction */
@@ -1103,13 +1159,17 @@ canvasEl.addEventListener('pointermove',e=>{
     }
     lastMove={x:e.clientX,t:now};
   } else if(carried<0){
-    // brushing past garments nudges them
-    const i=pick(e.clientX,e.clientY);
-    if(i>=0){ const h=hangables[i]; const vx=e.movementX||0, vy=e.movementY||0; h.vtz+=clamp(vx,-40,40)*0.012; h.vtx+=clamp(-vy,-40,40)*0.006; h.vyaw+=clamp(vx,-40,40)*0.01; }
-    if(i!==hoverI){ hoverI=i; canvasEl.classList.toggle('hovering',i>=0); }
-    if(i>=0 && e.pointerType==='mouse') showTip(i,e.clientX,e.clientY); else hideTip();
+    hov={x:e.clientX, y:e.clientY, vx:(hov?hov.vx:0)+(e.movementX||0), vy:(hov?hov.vy:0)+(e.movementY||0), mouse:e.pointerType==='mouse'};
   }
 });
+// brushing past garments nudges them; looked up once a frame, not on every mouse event
+let hov=null;
+function hover(){ const e=hov; hov=null; if(down || carried>=0) return;
+  const i=pick(e.x,e.y);
+  if(i>=0){ const h=hangables[i]; h.vtz+=clamp(e.vx,-40,40)*0.012; h.vtx+=clamp(-e.vy,-40,40)*0.006; h.vyaw+=clamp(e.vx,-40,40)*0.01; }
+  if(i!==hoverI){ hoverI=i; canvasEl.classList.toggle('hovering',i>=0); }
+  if(i>=0 && e.mouse) showTip(i,e.x,e.y); else hideTip();
+}
 function endPointer(e){
   if(!down) return;
   const wasMoved=down.moved;
@@ -1129,7 +1189,7 @@ function endPointer(e){
 }
 canvasEl.addEventListener('pointerup',endPointer);
 canvasEl.addEventListener('pointercancel',endPointer);
-canvasEl.addEventListener('pointerleave',()=>{parallax.tx=0;parallax.ty=0; hideTip(); hoverI=-1;});
+canvasEl.addEventListener('pointerleave',()=>{parallax.tx=0;parallax.ty=0; hov=null; hideTip(); hoverI=-1;});
 let wheelTimer=0;
 canvasEl.addEventListener('wheel',e=>{
   e.preventDefault(); dismissHint();
@@ -1236,11 +1296,12 @@ function pickSize(s){ selSize=s; store.set('size',s); $('sSize').textContent=s;
 function setHash(it){ try{ history.replaceState(null,'', it ? '#'+it.id : location.pathname+location.search); }catch(e){} }
 function takeOff(i){
   if(i<0||i>=N||carried>=0) return;
+  if(PHOTOS) sharpen(hangables[i]);
   carried=i; const h=hangables[i]; h.carried=true; h.userYaw=0; h.spinHeld=false; h.mode='off';
   // lift the hook off the rail first, then bring it forward and down to the viewer
   h.path={t:0, e:0, dur:reduce?.3:1.15, p0:new THREE.Vector3(h.x,h.y,h.z), c1:new THREE.Vector3(0,.17,.03), c2:new THREE.Vector3(0,.06,-.3)};
   fillSheet(i); setHash(ITEMS[i]); lastBack=null;
-  sheet.classList.add('open'); sheet.inert=false; dock.classList.add('away');
+  sheet.classList.add('open'); sheet.inert=false; dock.classList.add('away'); measureHold(); wake();
   canvasEl.classList.remove('hovering'); hideTip(); hinted=true; hint.classList.add('gone');
 }
 function putBack(keepOpen){
@@ -1364,7 +1425,7 @@ $('gH').oninput=$('gW').oninput=renderGuide;
 
 /* day / night: the shop lights go down and one spotlight follows the garment in front of you */
 const themeBtn=$('themeBtn');
-function setTheme(nightOn,save){ nightT=nightOn?1:0; document.documentElement.dataset.theme=nightOn?'night':'day';
+function setTheme(nightOn,save){ nightT=nightOn?1:0; wake(); document.documentElement.dataset.theme=nightOn?'night':'day';
   themeBtn.setAttribute('aria-pressed',String(nightOn)); themeBtn.setAttribute('aria-label',nightOn?'Φώτα ημέρας':'Νυχτερινή βιτρίνα');
   $('themeColor').content=nightOn?'#151416':'#c9c1b4'; if(save) store.set('night',nightOn); }
 setTheme(store.get('night', matchMedia('(prefers-color-scheme: dark)').matches)); night=nightT;
@@ -1383,28 +1444,50 @@ function dismissHint(){ if(hinted) return; hinted=true; setTimeout(()=>hint.clas
 (function(){ const it=byId(decodeURIComponent(location.hash.slice(1))); if(!it) return;
   fT=it.idx; f=it.idx-1.2; computeTargets(); for(const h of hangables){ h.x=h.tgt.x; h.yaw=h.tYaw; } takeOff(it.idx); })();
 
-addEventListener('resize',()=>{ renderer.setSize(innerWidth,innerHeight); layoutCamera(); });
+addEventListener('resize',()=>{ renderer.setPixelRatio(pixelRatio()); renderer.setSize(innerWidth,innerHeight); layoutCamera(); measureHold(); wake(); });
 
 /* ------------------------------------------------------------------ loop */
-let last=performance.now();
+function moving(){
+  if(dragging || carried>=0 || Math.abs(fT-f)>.002 || Math.abs(fV)>.01 || night!==nightT) return true;
+  if(Math.abs(parallax.tx-parallax.x)+Math.abs(parallax.ty-parallax.y)>.004 || Math.abs(lookDrop)>.002) return true;
+  let d=0; // how far anything on the rail moved since the last frame
+  for(const h of hangables){ if(h.path) return true;
+    d+=Math.abs(h.x-h.px)+Math.abs(h.y-h.py)+Math.abs(h.yaw-h.pyaw)+Math.abs(h.tz-h.ptz)+Math.abs(h.tx-h.ptx); h.px=h.x; h.py=h.y; h.pyaw=h.yaw; h.ptz=h.tz; h.ptx=h.tx; }
+  if(d>8e-4) return true;
+  return false;
+}
+function wake(){ awakeUntil=performance.now()+400; if(!running && !STILL){ running=true; last=performance.now(); warm=0; requestAnimationFrame(frame); } }
 function frame(now){
-  let dt=Math.min(1/30,(now-last)/1000); last=now;
+  const raw=now-last; let dt=Math.min(1/30,raw/1000); last=now;
+  if(hov) hover();
   const sub=3; for(let s=0;s<sub;s++) step(dt/sub);
   apply(); updateCamera(dt); updateUI();
   renderer.render(scene,camera);
+  // frames that keep coming slowly: draw fewer pixels (in proportion to how slow), then a smaller shadow map; remembered for next time
+  if(++warm>4 && raw<1500 && !HQ){ slowSum+=raw; if(++slow>=6){ const avg=slowSum/slow; slow=0; slowSum=0;
+    if(avg>34 && quality>.55){ quality=Math.max(.55,quality*clamp(Math.sqrt(26/avg),.6,.9)); warm=0; renderer.setPixelRatio(pixelRatio());
+      if(quality<.7 && key.shadow.mapSize.x>1024){ key.shadow.mapSize.set(1024,1024); if(key.shadow.map){ key.shadow.map.dispose(); key.shadow.map=null; } }
+      try{ localStorage.setItem('kremastra.q',JSON.stringify({q:quality,t:Date.now()})); }catch(e){} } } }
+  calm = moving() || now<awakeUntil ? 0 : calm+1;
+  if(calm>20){ // at rest: first make the garments sharp one by one, then stop drawing until something happens
+    if(PHOTOS && sharpenNext()){ warm=0; requestAnimationFrame(frame); return; }
+    running=false; return; }
   requestAnimationFrame(frame);
 }
+['pointerdown','pointermove','pointerup','keydown','wheel','click','input','focusin'].forEach(t=>addEventListener(t,wake,{capture:true,passive:true}));
 updateCamera(1);
-if(/[?&]still\b/.test(location.search)){ // for screenshots: time advances only when asked (window.kremastraStep(seconds))
+if(STILL){ // for screenshots: time advances only when asked (window.kremastraStep(seconds))
   window.kremastraStep=sec=>{ for(let n=Math.round(sec*60);n>0;n--){ for(let s=0;s<3;s++) step(1/180); apply(); updateCamera(1/60); updateUI(); } renderer.render(scene,camera); };
   window.kremastraStep(0);
-} else requestAnimationFrame(frame);
+  window.kremastraSharpen=()=>{ while(sharpenNext()); };
+  window.kremastraDbg={renderer,scene,camera,key,spot,hangables,wall,floor,amb};
+} else wake();
 setTimeout(()=>document.getElementById('loading').classList.add('done'),120);
 }
 (function(){
-  const SRC={teeFront:'img/tee-front.png',teeBack:'img/tee-back.png',tankFront:'img/tank-front.png',tankBack:'img/tank-back.png',
-    hoodieFront:'img/hoodie-front.png',hoodieBack:'img/hoodie-back.png',artLogo:'img/art-logo.png',artPanther:'img/art-panther.png',
-    stathisFront:'img/stathis-front.png',stathisBack:'img/stathis-back.png'};
+  const SRC={teeFront:'img/tee-front.webp',teeBack:'img/tee-back.webp',tankFront:'img/tank-front.webp',tankBack:'img/tank-back.webp',
+    hoodieFront:'img/hoodie-front.webp',hoodieBack:'img/hoodie-back.webp',artLogo:'img/art-logo.webp',artPanther:'img/art-panther.webp',
+    stathisFront:'img/stathis-front.webp',stathisBack:'img/stathis-back.webp'};
   const load=u=>new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=u; });
   let got=0; const total=Object.keys(SRC).length, bar=document.getElementById('loadBar');
   const photos=Promise.all(Object.entries(SRC).map(([k,u])=>load(u).then(im=>{ bar.style.setProperty('--p',++got/total); return [k,im]; }))).then(list=>{
@@ -1415,7 +1498,7 @@ setTimeout(()=>document.getElementById('loading').classList.add('done'),120);
     return P;
   }).catch(()=>null);
   const fl = document.fonts && document.fonts.load ? Promise.all([document.fonts.load('900 52px Commissioner'),document.fonts.load('800 18px Commissioner'),document.fonts.load('900 40px "Sofia Sans Extra Condensed"','Κρεμάστρα')]).catch(()=>{}) : Promise.resolve();
-  const timeout=new Promise(r=>setTimeout(r,2500));
+  const timeout=new Promise(r=>setTimeout(r,1200));
   let started=false;
   Promise.all([photos, Promise.race([fl,timeout])]).then(([P])=>{ if(started) return; started=true; kremastraMain(P); });
 })();
