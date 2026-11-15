@@ -3,150 +3,398 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Κρεμάστρα</title>
+<title>Κρεμάστρα · STATHIS Πάνθηρας</title>
+<meta name="description" content="Η συλλογή STATHIS Πάνθηρας σε μια αληθινή κρεμάστρα: ψάξε τα ρούχα, βγάλε όποιο θες, δες μπρος και πλάτη και διάλεξε μέγεθος.">
+<meta property="og:title" content="Κρεμάστρα · STATHIS Πάνθηρας">
+<meta property="og:description" content="Αμάνικα, hoodies και κοντομάνικα με τον πάνθηρα, κρεμασμένα σε μια 3D κρεμάστρα.">
+<meta name="theme-color" content="#c9c1b4" id="themeColor">
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2316130f'/%3E%3Cpath d='M16 13v-1.2a2.6 2.6 0 1 0-2.6-2.6M16 13 5.5 20.5a1.2 1.2 0 0 0 .7 2.2h19.6a1.2 1.2 0 0 0 .7-2.2z' fill='none' stroke='%23f4f0e7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script>try{var n=localStorage.getItem('kremastra.night');document.documentElement.dataset.theme=(n==null?matchMedia('(prefers-color-scheme: dark)').matches:n==='true')?'night':'day'}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;800;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&family=Sofia+Sans+Extra+Condensed:wght@700;800;900&display=swap">
 <style>
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0}
-/* Layout: full-bleed 3D store wall with the rack; thin UI floats over it (tabs top, focus label bottom, detail sheet on pick). Single deliberate look: a lit shop wall. */
+/* The page is a lit shop wall with the rack on it. Everything else borrows from the shop:
+   the product panel is a hang tag on a string, the cart is a till receipt, the bottom strip is the rack in miniature.
+   Chrome that floats on the wall (header, dock) follows the day/night theme; tag and receipt are paper in both. */
 :root{
   --wall:#c9c1b4;
-  --ink:#1c1a17;
-  --paper:#f5f2ed;
-  --muted:#6b645a;
-  --line:rgba(28,26,23,.16);
-  --accent:#2440b8;
-  --ok:#2f7a4b;
-  --f-ui:'Commissioner', 'Segoe UI', system-ui, sans-serif;
-  --f-mono:'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-  color-scheme: light;
+  --ink:#16130f;
+  --paper:#f4f0e7;
+  --paper-2:#e9e3d6;
+  --receipt:#fbfaf6;
+  --muted:#6d655a;
+  --line:rgba(22,19,15,.16);
+  --stamp:#2440b8;         /* stamp-ink blue: prices, selection, focus */
+  --wine:#8a2433;          /* favourites */
+  --glass:rgba(244,240,231,.76);
+  --glass-solid:#f4f0e7;
+  --on-wall:#16130f;
+  --on-wall-muted:rgba(22,19,15,.62);
+  --glass-line:rgba(22,19,15,.16);
+  --f-ui:'Commissioner','Segoe UI',system-ui,sans-serif;
+  --f-display:'Sofia Sans Extra Condensed','Commissioner','Arial Narrow',sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --sl:max(16px,env(safe-area-inset-left,0px)); --sr:max(16px,env(safe-area-inset-right,0px));
+  --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+:root[data-theme="night"]{
+  --wall:#151416;
+  --glass:rgba(30,29,32,.7);
+  --glass-solid:#232226;
+  --on-wall:#f1ece2;
+  --on-wall-muted:rgba(241,236,226,.62);
+  --glass-line:rgba(255,255,255,.16);
 }
 html,body{height:100%}
-body{background:var(--wall);color:var(--ink);font-family:var(--f-ui);overflow:hidden;-webkit-font-smoothing:antialiased}
+body{background:var(--wall);color:var(--ink);font-family:var(--f-ui);overflow:hidden;-webkit-font-smoothing:antialiased;transition:background .6s}
+button{font-family:inherit;color:inherit}
+svg{display:block}
+:focus-visible{outline:2px solid var(--stamp);outline-offset:2px}
+:root[data-theme="night"] header :focus-visible,:root[data-theme="night"] .dock :focus-visible{outline-color:#9fb1ff}
+
 #stage{position:fixed;inset:0}
 #stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 #stage canvas.grabbing{cursor:grabbing}
 #stage canvas.hovering{cursor:pointer}
-.vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 38%,transparent 55%,rgba(30,24,16,.28) 100%)}
+.vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 38%,transparent 55%,rgba(30,24,16,.28) 100%);transition:opacity .6s}
+:root[data-theme="night"] .vignette{background:radial-gradient(90% 80% at 50% 42%,transparent 40%,rgba(0,0,0,.6) 100%)}
 
-header{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:20px;flex-wrap:wrap;
-  padding-top:calc(env(safe-area-inset-top,0px) + 14px);padding-bottom:10px;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none}
+/* ---------- header */
+header{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  padding:calc(var(--st) + 14px) var(--sr) 10px var(--sl);pointer-events:none;color:var(--on-wall)}
 header > *{pointer-events:auto}
-.brand{font-weight:900;font-size:22px;letter-spacing:-.02em;line-height:1;display:flex;align-items:baseline;gap:8px}
-.brand small{font-family:var(--f-mono);font-weight:400;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-nav.tabs{display:flex;gap:4px;background:rgba(245,242,237,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:4px}
-nav.tabs button{font:600 13px/1 var(--f-ui);border:0;background:transparent;color:var(--ink);padding:9px 14px;border-radius:999px;cursor:pointer;display:flex;gap:7px;align-items:center;transition:background .2s,color .2s}
-nav.tabs button span{font:400 10px/1 var(--f-mono);opacity:.6}
-nav.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
-nav.tabs button:focus-visible,.btn:focus-visible,.size:focus-visible,.arrow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.cart{margin-left:auto;font:600 13px/1 var(--f-ui);display:flex;align-items:center;gap:8px;background:rgba(245,242,237,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:9px 14px}
-.cart b{font:600 11px/1 var(--f-mono);background:var(--accent);color:#fff;border-radius:999px;min-width:20px;height:20px;display:grid;place-items:center;padding:0 5px}
+.brand{display:flex;align-items:baseline;gap:10px;line-height:1;margin:0;font-weight:inherit}
+.brand b{font:900 34px/0.9 var(--f-display);letter-spacing:.005em;text-transform:uppercase}
+.brand span{font:500 12px/1 var(--f-ui);color:var(--on-wall-muted)}
+.glass{background:var(--glass);backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);border:1px solid var(--glass-line);color:var(--on-wall);transition:background .6s,border-color .6s,color .6s}
+nav.tabs{display:flex;gap:2px;border-radius:999px;padding:4px}
+nav.tabs button{font:600 13px/1 var(--f-ui);border:0;background:transparent;padding:9px 14px;border-radius:999px;cursor:pointer;display:flex;gap:7px;align-items:center;transition:background .2s,color .2s}
+nav.tabs button span{font-weight:500;font-size:11px;opacity:.55;font-variant-numeric:tabular-nums}
+nav.tabs button:hover{background:color-mix(in srgb,var(--on-wall) 9%,transparent)}
+nav.tabs button[aria-pressed="true"]{background:var(--on-wall);color:var(--glass-solid)}
+.tools{margin-left:auto;display:flex;gap:6px}
+.tool{position:relative;height:40px;min-width:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 11px;cursor:pointer;font:600 13px/1 var(--f-ui)}
+.tool:hover{background:var(--glass-solid)}
+.tool svg{width:18px;height:18px;flex:none}
+.tool .count{font:600 11px/1 var(--f-ui);font-variant-numeric:tabular-nums;background:var(--stamp);color:#fff;border-radius:999px;min-width:20px;height:20px;display:grid;place-items:center;padding:0 5px}
+.tool .count[data-n="0"]{background:transparent;color:var(--on-wall-muted);box-shadow:inset 0 0 0 1px var(--glass-line)}
+.tool .count.bump{animation:bump .45s var(--ease)}
+#favBtn .count{background:var(--wine)}
+#favBtn .count[data-n="0"]{display:none}
+@keyframes bump{0%{transform:scale(1)}35%{transform:scale(1.55)}100%{transform:scale(1)}}
+.sun{display:none}
+:root[data-theme="night"] .sun{display:block}
+:root[data-theme="night"] .moon{display:none}
 
-.focusbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;
-  padding-bottom:calc(env(safe-area-inset-bottom,0px) + 18px);padding-top:10px;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none;transition:opacity .35s,transform .35s}
-.focusbar.away{opacity:0;transform:translateY(20px)}
-.focuscard{pointer-events:auto;display:flex;align-items:center;gap:14px;background:rgba(245,242,237,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:18px;padding:8px;max-width:100%}
-.arrow{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-size:18px;cursor:pointer;flex:none}
-.arrow:hover{background:#fff}
-.fmeta{min-width:0;text-align:center;padding:0 4px}
-.fmeta .n{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fmeta .s{font:400 11px/1.4 var(--f-mono);color:var(--muted);white-space:nowrap}
-.fmeta .s b{color:var(--ink);font-weight:600}
-.hint{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 82px);transform:translateX(-50%);font:400 11px/1.4 var(--f-mono);color:rgba(28,26,23,.62);letter-spacing:.04em;white-space:nowrap;pointer-events:none;transition:opacity .6s}
+/* ---------- dock: what you are looking at + the rack in miniature */
+.dock{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;
+  padding:10px var(--sr) calc(var(--sb) + 16px) var(--sl);pointer-events:none;transition:opacity .35s,transform .35s}
+.dock.away .now{opacity:0;transform:translateY(8px);pointer-events:none;height:0;padding-top:0;padding-bottom:0;margin:0;overflow:hidden}
+.dockcard{pointer-events:auto;border-radius:20px;padding:8px 8px 10px;max-width:100%;display:flex;flex-direction:column;gap:6px;min-width:min(430px,100%)}
+.now{display:flex;align-items:center;gap:10px;transition:opacity .3s,transform .3s}
+.arrow{width:40px;height:40px;border-radius:12px;border:1px solid var(--glass-line);background:transparent;cursor:pointer;flex:none;display:grid;place-items:center}
+.arrow:hover{background:color-mix(in srgb,var(--on-wall) 9%,transparent)}
+.arrow svg{width:16px;height:16px}
+.arrow:disabled{opacity:.3;cursor:default}
+.fmeta{min-width:0;flex:1;text-align:center;padding:0 2px}
+.fmeta .n{font:800 22px/1 var(--f-display);letter-spacing:.01em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmeta .s{font:500 12px/1.5 var(--f-ui);color:var(--on-wall-muted);white-space:nowrap}
+.fmeta .s b{color:var(--on-wall);font-weight:700;font-variant-numeric:tabular-nums}
+.take{height:40px;border-radius:12px;border:0;background:var(--on-wall);color:var(--glass-solid);font:700 13px/1 var(--f-ui);padding:0 14px;cursor:pointer;flex:none}
+.take:hover{filter:brightness(1.15)}
+.minirail{position:relative;display:flex;justify-content:center;align-items:flex-start;gap:4px;padding:9px 10px 2px;touch-action:none;cursor:pointer;user-select:none}
+.minirail::before{content:"";position:absolute;left:6px;right:6px;top:3px;height:2px;border-radius:2px;background:color-mix(in srgb,var(--on-wall) 55%,transparent)}
+.minirail i{width:12px;flex:none}
+.chip{position:relative;width:11px;height:19px;border-radius:2px 2px 3px 3px;border:0;padding:0;background:var(--c);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--on-wall) 30%,transparent);cursor:pointer;flex:none;transform-origin:50% -6px;transition:transform .25s var(--ease)}
+.chip::before{content:"";position:absolute;left:50%;top:-6px;width:1.5px;height:6px;margin-left:-.75px;background:color-mix(in srgb,var(--on-wall) 55%,transparent)}
+.chip::after{content:"";position:absolute;inset:-8px -2.5px -6px}
+.chip[aria-current="true"]{transform:scale(1.42) rotate(-7deg);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--on-wall) 30%,transparent),0 0 0 1.5px var(--glass-solid),0 0 0 3px var(--on-wall)}
+.chip.incart::after{background:radial-gradient(circle 2.5px at 50% calc(100% - 2.5px),var(--stamp) 96%,transparent)}
+.hint{position:fixed;left:50%;bottom:calc(var(--sb) + 124px);transform:translateX(-50%);font:500 12px/1.4 var(--f-ui);color:var(--on-wall-muted);white-space:nowrap;pointer-events:none;transition:opacity .6s}
 .hint.gone{opacity:0}
+.hint kbd{font:600 11px/1 var(--f-ui);border:1px solid var(--glass-line);border-radius:5px;padding:2px 5px;margin:0 1px}
 
-aside.sheet{position:fixed;top:calc(env(safe-area-inset-top,0px) + 78px);right:max(16px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 18px);width:min(360px,calc(100vw - 32px));
-  background:var(--paper);border:1px solid var(--line);border-radius:22px;box-shadow:0 30px 60px -30px rgba(40,30,20,.45);display:flex;flex-direction:column;overflow:auto;
-  transform:translateX(calc(100% + 40px));transition:transform .55s cubic-bezier(.2,.8,.2,1)}
-aside.sheet.open{transform:none}
-.sheet .in{padding:22px;display:flex;flex-direction:column;gap:18px;flex:1}
-.sheet .cat{font:400 10px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-.sheet h2{margin:0;font-weight:900;font-size:28px;line-height:1.05;letter-spacing:-.02em;text-wrap:balance}
-.sheet .price{font:600 22px/1 var(--f-mono);color:var(--accent);font-variant-numeric:tabular-nums}
-.sheet p{margin:0;line-height:1.55;color:#3a362f;font-size:14px}
-.spec{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12.5px;margin:0}
-.spec dt{font:400 10.5px/1.6 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.spec dd{margin:0}
+/* label that follows the pointer over a garment */
+.tip{position:fixed;left:0;top:0;pointer-events:none;background:var(--ink);color:var(--paper);border-radius:10px 10px 10px 2px;padding:8px 11px;font:600 12px/1.25 var(--f-ui);white-space:nowrap;opacity:0;transition:opacity .15s;z-index:3}
+.tip.on{opacity:1}
+.tip b{font-variant-numeric:tabular-nums;margin-left:8px;color:#b9c5ff}
+.tip small{display:block;font-weight:400;font-size:11px;opacity:.7}
+
+/* ---------- hang tag (product panel) */
+aside.sheet{position:fixed;top:calc(var(--st) + 74px);right:var(--sr);bottom:calc(var(--sb) + 16px);width:min(384px,calc(100vw - 32px));
+  transform:translateX(calc(100% + 60px)) rotate(4deg);transform-origin:50% -40px;transition:transform .6s var(--ease),visibility 0s .6s;visibility:hidden;
+  filter:drop-shadow(0 26px 30px rgba(30,22,12,.34));z-index:2}
+aside.sheet.open{transform:none;visibility:visible;transition:transform .6s var(--ease),visibility 0s}
+aside.sheet::before{content:"";position:absolute;left:50%;top:-120px;height:142px;width:1.5px;background:linear-gradient(#0000,#3a342b 30%);transform:rotate(2.5deg);transform-origin:50% 100%}
+.tag{position:absolute;inset:0;background:var(--paper);display:flex;flex-direction:column;border-radius:4px 4px 18px 18px;
+  clip-path:polygon(30px 0,calc(100% - 30px) 0,100% 30px,100% 100%,0 100%,0 30px);
+  -webkit-mask:radial-gradient(circle 7px at 50% 22px,#0000 6.5px,#000 7.5px);mask:radial-gradient(circle 7px at 50% 22px,#0000 6.5px,#000 7.5px)}
+.tag::before{content:"";position:absolute;left:50%;top:22px;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;border:4px solid #b9b2a3;pointer-events:none}
+.tag-scroll{flex:1;overflow:auto;padding:54px 22px 14px;display:flex;flex-direction:column;gap:16px;overscroll-behavior:contain}
+.tag-top{display:flex;align-items:flex-start;gap:12px}
+.tag-top > div{flex:1;min-width:0}
+.cat{font:500 12px/1 var(--f-ui);color:var(--muted);margin-bottom:6px}
+.sheet h2{margin:0;font:900 44px/.88 var(--f-display);text-transform:uppercase;letter-spacing:.005em;text-wrap:balance}
+.price{font:900 34px/.9 var(--f-display);color:var(--stamp);font-variant-numeric:tabular-nums;white-space:nowrap;border:2px solid var(--stamp);border-radius:6px;padding:6px 8px 4px;transform:rotate(-3deg);margin-top:14px}
+.row-lbl{font:500 12.5px/1 var(--f-ui);color:var(--muted);display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.row-lbl b{color:var(--ink);font-weight:700}
+.linkbtn{font:600 12.5px/1 var(--f-ui);background:none;border:0;padding:0;color:var(--stamp);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatch{width:34px;height:34px;border-radius:50%;border:0;padding:0;background:var(--c);box-shadow:inset 0 0 0 1px rgba(22,19,15,.25);cursor:pointer;transition:transform .2s var(--ease)}
+.swatch:hover{transform:scale(1.08)}
+.swatch[aria-pressed="true"]{box-shadow:inset 0 0 0 1px rgba(22,19,15,.25),0 0 0 2px var(--paper),0 0 0 4px var(--ink)}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--paper-2);border-radius:12px;padding:3px;gap:3px}
+.seg button{height:36px;border:0;border-radius:9px;background:transparent;font:600 13px/1 var(--f-ui);cursor:pointer}
+.seg button[aria-pressed="true"]{background:#fff;box-shadow:0 1px 2px rgba(22,19,15,.18)}
 .sizes{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
-.size{font:600 12px/1 var(--f-mono);border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;height:40px;cursor:pointer}
+.size{font:700 13px/1 var(--f-ui);border:1px solid var(--line);background:#fff;border-radius:10px;height:42px;cursor:pointer;transition:transform .15s}
+.size:hover:not(:disabled){border-color:var(--ink)}
+.size:active:not(:disabled){transform:scale(.95)}
 .size[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.size:disabled{color:#b5aea4;background:transparent;text-decoration:line-through;cursor:not-allowed}
-.lbl{font:400 10.5px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
-.actions{display:flex;flex-direction:column;gap:8px;margin-top:auto}
-.btn{font:700 14px/1 var(--f-ui);border-radius:14px;height:48px;border:1px solid var(--ink);cursor:pointer}
-.btn.primary{background:var(--ink);color:var(--paper)}
+.size:disabled{color:#b5aea4;background:transparent;cursor:not-allowed;background-image:linear-gradient(to top right,transparent calc(50% - .6px),#cfc8bb calc(50% - .6px),#cfc8bb calc(50% + .6px),transparent calc(50% + .6px))}
+.note{font:400 12px/1.4 var(--f-ui);color:var(--muted);margin:8px 0 0;min-height:1.4em}
+.sheet p.desc{margin:0;line-height:1.55;color:#3a362f;font-size:14px}
+.spec{display:grid;grid-template-columns:auto 1fr;gap:7px 16px;font-size:13px;margin:0;padding-top:14px;border-top:1px dashed var(--line)}
+.spec dt{color:var(--muted)}
+.spec dd{margin:0;font-weight:600}
+.tag-actions{padding:12px 22px 18px;display:flex;flex-direction:column;gap:8px;background:var(--paper);border-top:1px solid var(--line)}
+.buy{display:flex;gap:8px}
+.btn{font:700 14px/1 var(--f-ui);border-radius:14px;height:50px;border:1px solid var(--ink);cursor:pointer;padding:0 16px}
+.btn.primary{flex:1;white-space:nowrap;background:var(--ink);color:var(--paper);display:flex;justify-content:space-between;align-items:center;gap:10px;transition:background .25s,border-color .25s}
+.btn.primary span:last-child{font-variant-numeric:tabular-nums;opacity:.75}
 .btn.primary:hover{background:#000}
-.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
-.rotate-tip{font:400 10.5px/1.4 var(--f-mono);color:var(--muted);text-align:center}
+.btn.primary.done{background:var(--stamp);border-color:var(--stamp)}
+.btn.ghost{background:transparent;border-color:var(--line);height:42px;font-weight:600}
+.btn.ghost:hover{border-color:var(--ink)}
+.icon{width:50px;height:50px;flex:none;border-radius:14px;border:1px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center}
+.icon:hover{border-color:var(--ink)}
+.icon svg{width:20px;height:20px}
+.icon[aria-pressed="true"]{color:var(--wine);border-color:var(--wine)}
+.icon[aria-pressed="true"] svg{fill:currentColor}
+.x{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center;flex:none}
+.x:hover{border-color:var(--ink)}
+.x svg{width:14px;height:14px}
+.tag .x{position:absolute;right:36px;top:9px;border:0;background:var(--paper-2);z-index:1}
+.back{display:flex;gap:8px}
+.back .btn{flex:1}
+.back .icon{width:42px;height:42px;border-radius:12px}
+.back .icon svg{width:18px;height:18px}
 
-.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 76px);transform:translate(-50%,-12px);opacity:0;background:var(--ink);color:var(--paper);font:600 13px/1 var(--f-ui);padding:12px 16px;border-radius:12px;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap}
+/* ---------- drawer: the cart is a till receipt */
+.scrim{position:fixed;inset:0;background:rgba(18,14,10,.42);opacity:0;pointer-events:none;transition:opacity .35s;z-index:4}
+.scrim.on{opacity:1;pointer-events:auto}
+aside.drawer{position:fixed;top:0;right:0;bottom:0;width:min(400px,100vw);z-index:5;padding:calc(var(--st) + 14px) var(--sr) 0 16px;
+  transform:translateY(-104%);transition:transform .7s var(--ease),visibility 0s .7s;visibility:hidden;filter:drop-shadow(0 20px 30px rgba(20,14,8,.4));pointer-events:none}
+aside.drawer.open{transform:none;visibility:visible;transition:transform .7s var(--ease),visibility 0s}
+.receipt{pointer-events:auto;background:var(--receipt);max-height:calc(100% - var(--sb) - 20px);display:flex;flex-direction:column;font-family:var(--f-mono);font-size:12.5px;color:#1d1b18;padding-bottom:14px;
+  --z:12px;-webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/var(--z) 51% repeat-x,linear-gradient(#000 0 0) top/100% 51% no-repeat;
+  mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/var(--z) 51% repeat-x,linear-gradient(#000 0 0) top/100% 51% no-repeat}
+.r-head{padding:18px 20px 12px;text-align:center;position:relative}
+.r-head b{display:block;font:900 30px/1 var(--f-display);text-transform:uppercase;letter-spacing:.04em}
+.r-head time{color:#6d665b;font-size:11px}
+.r-head .x{position:absolute;right:12px;top:12px}
+.r-tabs{display:grid;grid-template-columns:1fr 1fr;margin:0 20px;border:1px solid #1d1b18;border-radius:8px;overflow:hidden}
+.r-tabs button{height:34px;border:0;background:transparent;font:600 12px/1 var(--f-mono);cursor:pointer}
+.r-tabs button[aria-pressed="true"]{background:#1d1b18;color:var(--receipt)}
+.r-body{overflow:auto;padding:4px 20px;margin-top:10px;overscroll-behavior:contain}
+.r-line{display:grid;grid-template-columns:46px 1fr auto;gap:4px 12px;align-items:center;padding:12px 0;border-top:1px dashed #b9b2a5}
+.r-line img,.r-line .ph{width:46px;height:58px;border-radius:4px;background:#d8d1c5;object-fit:contain;display:block}
+.r-line .t{min-width:0}
+.r-line .t > button{font:600 12.5px/1.3 var(--f-mono);background:none;border:0;padding:0;text-align:left;cursor:pointer;color:inherit}
+.r-line .t > button:hover{text-decoration:underline}
+.r-line .t small{display:block;color:#6d665b;font-size:11.5px;margin-top:2px}
+.r-line .p{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.qty{display:inline-flex;align-items:center;gap:0;margin-top:6px;border:1px solid #b9b2a5;border-radius:7px}
+.qty button{padding:0;width:28px;height:26px;border:0;background:transparent;cursor:pointer;font:600 14px/1 var(--f-mono)}
+.qty button:hover{background:#ece7dc}
+.qty span{min-width:22px;text-align:center;font-variant-numeric:tabular-nums}
+.r-line .rm{font:400 11.5px/1 var(--f-mono);background:none;border:0;padding:6px 0 0;cursor:pointer;color:#6d665b;text-decoration:underline;text-underline-offset:2px;display:block;margin-left:auto}
+.r-empty{padding:26px 6px 20px;text-align:center;color:#55504a;line-height:1.6;border-top:1px dashed #b9b2a5}
+.r-foot{padding:0 20px;display:flex;flex-direction:column;gap:10px}
+.r-total{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid #1d1b18;padding-top:10px;margin-top:2px;font-weight:600}
+.r-total b{font-size:20px;font-variant-numeric:tabular-nums}
+.r-foot p{margin:0;font-size:11px;line-height:1.5;color:#6d665b}
+.r-foot .btn{flex:none;font-family:var(--f-mono);font-size:13px;border-radius:8px;height:46px;justify-content:center}
+.r-foot .linkbtn{font-family:var(--f-mono);font-size:11.5px;color:#6d665b;align-self:center;padding:4px}
+.barcode{height:30px;margin:2px 20px 0;background:repeating-linear-gradient(90deg,#1d1b18 0 2px,#0000 2px 3px,#1d1b18 3px 4px,#0000 4px 7px,#1d1b18 7px 10px,#0000 10px 12px,#1d1b18 12px 13px,#0000 13px 17px);opacity:.85}
+
+/* ---------- size guide */
+dialog{border:0;padding:0;border-radius:20px;background:var(--paper);color:var(--ink);width:min(460px,calc(100vw - 32px));max-height:calc(100vh - 40px);box-shadow:0 40px 80px -20px rgba(20,14,8,.6)}
+dialog::backdrop{background:rgba(18,14,10,.5)}
+.dlg{padding:22px;display:flex;flex-direction:column;gap:16px}
+.dlg-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.dlg h3{margin:0;font:900 34px/.9 var(--f-display);text-transform:uppercase}
+.dlg p{margin:0;font-size:13px;line-height:1.5;color:#3a362f}
+.dlg table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.dlg th,.dlg td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--line)}
+.dlg th{font-weight:600;color:var(--muted);font-size:12px}
+.dlg td:first-child,.dlg th:first-child{text-align:left;font-weight:700}
+.dlg tr.rec td{background:rgba(36,64,184,.1);color:var(--stamp);font-weight:700}
+.finder{background:var(--paper-2);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.finder .f{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.finder label{font:600 12px/1 var(--f-ui);color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.finder input{font:600 15px/1 var(--f-ui);height:42px;border-radius:10px;border:1px solid var(--line);background:#fff;padding:0 12px;width:100%;color:var(--ink)}
+.finder output{font-size:13px;line-height:1.45;display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:36px}
+.finder output b{font:900 26px/1 var(--f-display);color:var(--stamp)}
+.finder .btn{height:36px;border-radius:10px;font-size:13px;padding:0 12px;background:var(--ink);color:var(--paper)}
+
+.toast{position:fixed;left:50%;top:calc(var(--st) + 72px);transform:translate(-50%,-12px);opacity:0;background:var(--ink);color:var(--paper);font:600 13px/1.3 var(--f-ui);padding:12px 16px;border-radius:12px;transition:opacity .3s,transform .3s;pointer-events:none;max-width:calc(100vw - 32px);text-align:center;z-index:8}
 .toast.show{opacity:1;transform:translate(-50%,0)}
-.loading{position:fixed;inset:0;display:grid;place-items:center;font:400 12px/1 var(--f-mono);letter-spacing:.1em;color:var(--muted);background:var(--wall);transition:opacity .6s}
+.fly{position:fixed;left:0;top:0;width:22px;height:28px;border-radius:4px 4px 6px 6px;background:var(--c);box-shadow:0 0 0 1.5px #fff,0 6px 14px rgba(0,0,0,.35);pointer-events:none;z-index:7}
+
+.loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--wall);transition:opacity .7s;z-index:9;color:var(--on-wall)}
 .loading.done{opacity:0;pointer-events:none}
+.loading div{width:min(260px,70vw);text-align:center}
+.loading b{font:900 54px/1 var(--f-display);text-transform:uppercase;display:block}
+.loading span{font:500 12px/1 var(--f-ui);color:var(--on-wall-muted)}
+.loadrail{height:2px;background:var(--glass-line);border-radius:2px;margin:16px 0 12px;position:relative}
+.loadrail i{position:absolute;left:0;top:0;bottom:0;width:calc(var(--p,0) * 100%);background:var(--on-wall);border-radius:2px;transition:width .3s}
+.loadrail i::after{content:"";position:absolute;right:-5px;top:1px;width:10px;height:16px;border-radius:2px 2px 3px 3px;background:var(--on-wall);transform-origin:50% 0;animation:sway 1.1s ease-in-out infinite alternate}
+@keyframes sway{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
 
 @media (max-width:720px){
   header{gap:10px}
-  .brand small{display:none}
+  .brand b{font-size:30px}
+  .brand span{display:none}
   nav.tabs{order:3;width:100%;justify-content:space-between}
   nav.tabs button{flex:1;justify-content:center;padding:9px 6px;font-size:12.5px}
-  aside.sheet{top:auto;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));width:auto;max-height:52%;transform:translateY(calc(100% + 40px))}
-  .sheet .in{padding:18px;gap:14px}
-  .sheet h2{font-size:22px}
-  .hint{bottom:calc(env(safe-area-inset-bottom,0px) + 80px);font-size:10px;white-space:normal;text-align:center;width:calc(100% - 32px)}
+  .tool b.lbl{display:none}
+  .dock{padding-bottom:calc(var(--sb) + 10px)}
+  .dockcard{width:100%}
+  .fmeta .n{font-size:20px}
+  .take{padding:0 12px}
+  .hint{bottom:calc(var(--sb) + 118px);font-size:11.5px;white-space:normal;text-align:center;width:calc(100% - 32px)}
+  .hint .k{display:none}
+  aside.sheet{top:auto;left:var(--sl);right:var(--sr);bottom:calc(var(--sb) + 54px);width:auto;height:min(55vh,470px);transform:translateY(calc(100% + 120px));transform-origin:50% 0}
+  aside.sheet::before{display:none}
+  .tag-scroll{padding:50px 16px 12px;gap:13px}
+  .tag-actions{padding:10px 16px 14px}
+  .sheet h2{font-size:34px}
+  .price{font-size:27px;margin-top:8px}
+  .dock.away .dockcard{padding:6px 8px 6px}
+  aside.drawer{width:100vw;padding-left:var(--sl)}
 }
-@media (prefers-reduced-motion: reduce){ aside.sheet,.focusbar,.toast{transition:none} }
+@media (prefers-reduced-motion:reduce){
+  aside.sheet,aside.drawer,.dock,.toast,.chip,.scrim{transition:none}
+  .loadrail i::after,.tool .count.bump{animation:none}
+}
+@media (min-width:721px) and (max-width:1240px){ .dock.away{justify-content:flex-start} .dock.away .dockcard{min-width:0} }
 </style>
 </head>
 <body>
 
 <div id="stage"></div>
 <div class="vignette"></div>
-<div class="loading" id="loading">ΚΡΕΜΑΜΕ ΤΑ ΡΟΥΧΑ…</div>
+<div class="loading" id="loading"><div><b>Κρεμάστρα</b><div class="loadrail"><i id="loadBar"></i></div><span>Κρεμάμε τα ρούχα</span></div></div>
 
 <header>
-  <div class="brand">Κρεμάστρα <small>Καλοκαίρι / Φθινόπωρο</small></div>
-  <nav class="tabs" id="tabs" aria-label="Κατηγορίες"></nav>
-  <div class="cart" aria-live="polite">Καλάθι <b id="cartCount">0</b></div>
+  <h1 class="brand"><b>Κρεμάστρα</b> <span>STATHIS, συλλογή Πάνθηρας</span></h1>
+  <nav class="tabs glass" id="tabs" aria-label="Κατηγορίες"></nav>
+  <div class="tools">
+    <button class="tool glass" id="themeBtn" type="button" aria-label="Νυχτερινή βιτρίνα" aria-pressed="false" title="Άναψε ή σβήσε τα φώτα του μαγαζιού">
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M5.3 18.7l1.5-1.5M17.2 6.8l1.5-1.5"/></svg>
+    </button>
+    <button class="tool glass" id="favBtn" type="button" aria-label="Αγαπημένα">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg>
+      <span class="count" id="favCount" data-n="0">0</span>
+    </button>
+    <button class="tool glass" id="cartBtn" type="button" aria-label="Καλάθι">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V7a3 3 0 0 1 6 0v1"/></svg>
+      <b class="lbl">Καλάθι</b>
+      <span class="count" id="cartCount" data-n="0" aria-live="polite">0</span>
+    </button>
+  </div>
 </header>
 
-<div class="hint" id="hint">Σύρε ή κάνε scroll για να ψάξεις · Κλικ στο ρούχο για να το βγάλεις</div>
+<div class="hint" id="hint">Σύρε ή κάνε scroll για να ψάξεις. Κλικ στο ρούχο για να το βγάλεις<span class="k">, ή πάτα <kbd>←</kbd> <kbd>→</kbd> και <kbd>Enter</kbd></span></div>
+<div class="tip" id="tip" aria-hidden="true"></div>
 
-<div class="focusbar" id="focusbar">
-  <div class="focuscard">
-    <button class="arrow" id="prev" aria-label="Προηγούμενο ρούχο">‹</button>
-    <div class="fmeta"><div class="n" id="fName">–</div><div class="s" id="fSub">–</div></div>
-    <button class="arrow" id="next" aria-label="Επόμενο ρούχο">›</button>
+<div class="dock" id="dock">
+  <div class="dockcard glass">
+    <div class="now">
+      <button class="arrow" id="prev" type="button" aria-label="Προηγούμενο ρούχο"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg></button>
+      <div class="fmeta" aria-live="polite"><div class="n" id="fName">–</div><div class="s" id="fSub">–</div></div>
+      <button class="take" id="take" type="button">Δες το</button>
+      <button class="arrow" id="next" type="button" aria-label="Επόμενο ρούχο"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg></button>
+    </div>
+    <div class="minirail" id="minirail" role="group" aria-label="Όλα τα ρούχα της κρεμάστρας"></div>
   </div>
 </div>
 
-<aside class="sheet" id="sheet" aria-hidden="true">
-  <div class="in">
-    <div class="cat" id="sCat"></div>
-    <h2 id="sName"></h2>
-    <div class="price" id="sPrice"></div>
-    <p id="sDesc"></p>
-    <dl class="spec">
-      <dt>Σύνθεση</dt><dd id="sComp"></dd>
-      <dt>Βάρος</dt><dd id="sGsm"></dd>
-      <dt>Γραμμή</dt><dd id="sFit"></dd>
-    </dl>
-    <div>
-      <div class="lbl"><span>Μέγεθος</span><span id="sStock"></span></div>
-      <div class="sizes" id="sizes" style="margin-top:8px"></div>
+<aside class="sheet" id="sheet" aria-label="Το ρούχο που κρατάς" inert>
+  <div class="tag">
+    <button class="x" id="closeTag" type="button" aria-label="Πίσω στην κρεμάστρα"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m2 2 10 10M12 2 2 12"/></svg></button>
+    <div class="tag-scroll">
+      <div class="tag-top">
+        <div><div class="cat" id="sCat"></div><h2 id="sName"></h2></div>
+        <div class="price" id="sPrice"></div>
+      </div>
+      <div>
+        <div class="row-lbl"><span>Χρώμα: <b id="sColor"></b></span></div>
+        <div class="swatches" id="swatches"></div>
+      </div>
+      <div class="seg" id="viewSeg" role="group" aria-label="Όψη">
+        <button type="button" id="viewFront" aria-pressed="true">Μπροστά</button>
+        <button type="button" id="viewBack" aria-pressed="false">Πλάτη</button>
+      </div>
+      <div>
+        <div class="row-lbl"><span>Μέγεθος: <b id="sSize"></b></span><button class="linkbtn" id="openGuide" type="button">Οδηγός μεγεθών</button></div>
+        <div class="sizes" id="sizes"></div>
+        <p class="note" id="sNote"></p>
+      </div>
+      <p class="desc" id="sDesc"></p>
+      <dl class="spec">
+        <dt>Σύνθεση</dt><dd id="sComp"></dd>
+        <dt>Βάρος</dt><dd id="sGsm"></dd>
+        <dt>Γραμμή</dt><dd id="sFit"></dd>
+      </dl>
     </div>
-    <div class="actions">
-      <div class="rotate-tip">Σύρε το ρούχο για να δεις και την πλάτη</div>
-      <button class="btn primary" id="addCart">Προσθήκη στο καλάθι</button>
-      <button class="btn ghost" id="putBack">Πίσω στην κρεμάστρα</button>
+    <div class="tag-actions">
+      <div class="buy">
+        <button class="btn primary" id="addCart" type="button"><span id="addLbl">Προσθήκη στο καλάθι</span><span id="addPrice"></span></button>
+        <button class="icon" id="favToggle" type="button" aria-label="Στα αγαπημένα" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg></button>
+      </div>
+      <div class="back"><button class="btn ghost" id="putBack" type="button">Πίσω στην κρεμάστρα</button><button class="icon" id="shareBtn" type="button" aria-label="Αντιγραφή συνδέσμου για αυτό το ρούχο"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg></button></div>
     </div>
   </div>
 </aside>
-<div class="toast" id="toast"></div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Καλάθι και αγαπημένα" inert>
+  <div class="receipt">
+    <div class="r-head"><b>Κρεμάστρα</b><time id="rTime"></time>
+      <button class="x" id="closeDrawer" type="button" aria-label="Κλείσιμο"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m2 2 10 10M12 2 2 12"/></svg></button></div>
+    <div class="r-tabs"><button type="button" id="rTabCart" aria-pressed="true">Καλάθι</button><button type="button" id="rTabFav" aria-pressed="false">Αγαπημένα</button></div>
+    <div class="r-body" id="rBody"></div>
+    <div class="r-foot" id="rFoot"></div>
+    <div class="barcode" aria-hidden="true"></div>
+  </div>
+</aside>
+
+<dialog id="guide" aria-labelledby="guideTitle">
+  <div class="dlg">
+    <div class="dlg-head"><h3 id="guideTitle">Οδηγός μεγεθών</h3>
+      <button class="x" id="closeGuide" type="button" aria-label="Κλείσιμο"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m2 2 10 10M12 2 2 12"/></svg></button></div>
+    <div class="finder">
+      <div class="f">
+        <label>Ύψος (cm)<input id="gH" type="number" inputmode="numeric" min="140" max="215" placeholder="178"></label>
+        <label>Βάρος (kg)<input id="gW" type="number" inputmode="numeric" min="40" max="160" placeholder="75"></label>
+      </div>
+      <output id="gOut">Γράψε ύψος και βάρος για να σου προτείνουμε μέγεθος.</output>
+    </div>
+    <table><thead><tr><th>Μέγεθος</th><th>Πλάτος στήθους</th><th>Μήκος</th></tr></thead><tbody id="gRows"></tbody></table>
+    <p id="gNote"></p>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -175,8 +423,10 @@ const RAW = [
   {cat:2,name:'T-shirt STATHIS Πάνθηρας · Άμμος',color:'#d6c19c',ink:'#141414',print:'stathis',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Κανονική',desc:'Μπλουζάκι σε άμμος, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'}
 ];
 const SIZES = ['XS','S','M','L','XL','XXL'];
+const COLOR_SLUG={'Μαύρο':'mavro','Λευκό':'lefko','Μπορντό':'bornto','Χακί':'haki','Γκρι μελανζέ':'gkri','Navy':'navy','Άμμος':'ammos'};
 const ITEMS = RAW.map((r,i)=>Object.assign({}, r, {
   idx:i, type:CATS[r.cat].key, seed: (i*7.31)%6.28,
+  model:r.name.split(' · ')[0], colorName:r.name.split(' · ')[1], id:CATS[r.cat].key+'-'+COLOR_SLUG[r.name.split(' · ')[1]],
   stock: SIZES.map((s,k)=> ((i*5 + k*3) % 11) !== 0 && !(k===0 && i%3===0))
 }));
 const N = ITEMS.length;
@@ -625,6 +875,7 @@ ITEMS.forEach((item,i)=>{
       bc = item.photoBack && PHOTOS[item.photoBack] ? rawTexture(PHOTOS[item.photoBack],false) : rawTexture(PHOTOS[key],true); }
     else { key='p-'+item.type; fc=photoTexture(item,PHOTOS[item.type+'Front'],false); bc=photoTexture(item,PHOTOS[item.type+'Back'],true); }
   } else { fc=paintGarment(item,false); bc=paintGarment(item,true); }
+  item.frontCanvas=fc;
   const fkey=key||item.type, fit=fitHanger(item.type,[fc,bc],fkey);
   const dist=edgeDistance(fkey,[fc,bc]);
   const front=garmentGeo(item,1,key&&fc,key,fit,dist), back=garmentGeo(item,-1,key&&fc,key,fit,dist);
@@ -671,6 +922,7 @@ CATS.forEach((cat,ci)=>{
 /* ------------------------------------------------------------------ state & targets */
 let f=-1.2, fV=0, fT=3; // continuous focus index; start off-screen and glide in
 let dragging=false, carried=-1;
+let night=0, nightT=0; // 0 = shop lights on, 1 = night window with one spotlight
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const camPos=new THREE.Vector3(camXFor(fT),1.3,1.9), camLook=new THREE.Vector3(camXFor(fT),1.22,0);
 let camDist=2.55;
@@ -679,9 +931,9 @@ const holdTmp=new THREE.Vector3();
 
 function holdPoint(out){
   const narrow=innerWidth<=720;
-  const nx = narrow ? 0 : -0.28, ny = narrow ? 0.36 : 0.06; // NDC of garment centre
+  const nx = narrow ? 0 : -0.28, ny = narrow ? 0.46 : 0.06; // NDC of garment centre
   out.set(nx,ny,0.5).unproject(camera).sub(camera.position).normalize();
-  const dist = narrow ? 2.05 : 1.34;
+  const dist = narrow ? 2.8 : 1.34;
   out.multiplyScalar(dist).add(camera.position); out.y += 0.37; // pivot is above the garment centre
   return out;
 }
@@ -778,7 +1030,9 @@ function apply(){
     h.spin.rotation.y=h.yaw;
     if(h.U){ h.U.uBend.value.set(h.bx,h.bz); h.U.uTwist.value=h.tw; }
     if(h.meshes && h.meshes[0].material.isMeshBasicMaterial){ // turned-away photos sit in the rack's shade
-      const l=.6+.4*Math.abs(Math.cos(h.yaw)); h.meshes[0].material.color.setScalar(l); h.meshes[1].material.color.setScalar(l); }
+      let l=.6+.4*Math.abs(Math.cos(h.yaw));
+      if(night>0){ const dx=(h.x-camLook.x)/.5, pool=h.carried||h.path? 1 : .2+.8*Math.exp(-dx*dx); l*=1-night*(1-pool); }
+      h.meshes[0].material.color.setScalar(l); h.meshes[1].material.color.setScalar(l); }
   }
 }
 // initialise positions at their targets (entrance glide comes from f)
@@ -803,6 +1057,13 @@ function updateCamera(dt){
   key.position.set(camLook.x+.75,3.3,3.6); key.target.position.set(camLook.x,1.1,0); // fairly frontal: each garment's shadow falls close behind it
   fill.position.set(camLook.x-2.5,1.6,2); fill.target.position.set(camLook.x,1.2,0);
   spot.position.set(camLook.x,3.1,1.3); spot.target.position.set(camLook.x,1.2,0);
+  if(night!==nightT || !lit){ night = reduce||Math.abs(nightT-night)<.004 ? nightT : night+(nightT-night)*Math.min(1,dt*3.5); light(night); }
+}
+const DAY=new THREE.Color(WALL), NIGHT=new THREE.Color(0x151416); let lit=false;
+function light(n){ const mix=(a,b)=>a+(b-a)*n; lit=true;
+  scene.background.copy(DAY).lerp(NIGHT,n); scene.fog.color.copy(scene.background);
+  hemi.intensity=mix(.55,.06); key.intensity=mix(1.25,.2); fill.intensity=mix(.35,.05); spot.intensity=mix(1.2,3.4); spot.angle=mix(.5,.4);
+  wall.material.envMapIntensity=mix(.4,.03); floor.material.envMapIntensity=mix(.6,.08);
 }
 
 /* ------------------------------------------------------------------ interaction */
@@ -821,7 +1082,7 @@ canvasEl.addEventListener('pointerdown',e=>{
   canvasEl.setPointerCapture(e.pointerId);
   down={x:e.clientX,y:e.clientY,t:performance.now(),f0:f,moved:false,id:e.pointerId,yaw0: carried>=0?hangables[carried].userYaw:0, w:0};
   lastMove={x:e.clientX,t:performance.now(),v:0};
-  dismissHint();
+  dismissHint(); hideTip();
 });
 canvasEl.addEventListener('pointermove',e=>{
   const r=canvasEl.getBoundingClientRect();
@@ -846,6 +1107,7 @@ canvasEl.addEventListener('pointermove',e=>{
     const i=pick(e.clientX,e.clientY);
     if(i>=0){ const h=hangables[i]; const vx=e.movementX||0, vy=e.movementY||0; h.vtz+=clamp(vx,-40,40)*0.012; h.vtx+=clamp(-vy,-40,40)*0.006; h.vyaw+=clamp(vx,-40,40)*0.01; }
     if(i!==hoverI){ hoverI=i; canvasEl.classList.toggle('hovering',i>=0); }
+    if(i>=0 && e.pointerType==='mouse') showTip(i,e.clientX,e.clientY); else hideTip();
   }
 });
 function endPointer(e){
@@ -867,7 +1129,7 @@ function endPointer(e){
 }
 canvasEl.addEventListener('pointerup',endPointer);
 canvasEl.addEventListener('pointercancel',endPointer);
-canvasEl.addEventListener('pointerleave',()=>{parallax.tx=0;parallax.ty=0;});
+canvasEl.addEventListener('pointerleave',()=>{parallax.tx=0;parallax.ty=0; hideTip(); hoverI=-1;});
 let wheelTimer=0;
 canvasEl.addEventListener('wheel',e=>{
   e.preventDefault(); dismissHint();
@@ -878,68 +1140,248 @@ canvasEl.addEventListener('wheel',e=>{
   clearTimeout(wheelTimer); wheelTimer=setTimeout(()=>{ fT=clamp(Math.round(fT),0,N-1); },140);
 },{passive:false});
 addEventListener('keydown',e=>{
-  if(e.target && (e.target.tagName==='BUTTON') && (e.key==='Enter'||e.key===' ')) return;
-  if(e.key==='ArrowRight'){ if(carried>=0) hangables[carried].userYaw+=Math.PI; else go(1); e.preventDefault(); }
-  if(e.key==='ArrowLeft'){ if(carried>=0) hangables[carried].userYaw-=Math.PI; else go(-1); e.preventDefault(); }
-  if((e.key==='Enter'||e.key===' ') && carried<0){ takeOff(Math.round(fT)); e.preventDefault(); }
-  if(e.key==='Escape' && carried>=0) putBack();
+  const tg=e.target, tn=tg && tg.tagName;
+  if(tn==='INPUT') return;
+  if(guide.open) return; // the dialog handles its own Escape
+  if(e.key==='Escape'){ if(drawerOpen) closeDrawer(); else if(carried>=0) putBack(); return; }
+  if(drawerOpen) return;
+  if(tn==='BUTTON' && (e.key==='Enter'||e.key===' ')) return;
+  if(e.key==='ArrowRight'){ if(carried>=0) flip(); else go(1); e.preventDefault(); }
+  if(e.key==='ArrowLeft'){ if(carried>=0) flip(); else go(-1); e.preventDefault(); }
+  if((e.key==='Enter'||e.key===' ') && carried<0){ takeOff(Math.round(fT)); document.getElementById('closeTag').focus({preventScroll:true}); e.preventDefault(); }
 });
 function go(dir){ fT=clamp(Math.round(fT)+dir,0,N-1); dismissHint(); }
-document.getElementById('prev').onclick=()=>go(-1);
-document.getElementById('next').onclick=()=>go(1);
 
 /* ------------------------------------------------------------------ UI */
-const tabsEl=document.getElementById('tabs');
-CATS.forEach((c,ci)=>{ const b=document.createElement('button'); b.id='tab-'+c.key; b.type='button';
-  b.innerHTML=`${c.name}<span>${ITEMS.filter(i=>i.cat===ci).length}</span>`;
-  b.onclick=()=>{ if(carried>=0) putBack(); const first=ITEMS.findIndex(i=>i.cat===ci); const cnt=ITEMS.filter(i=>i.cat===ci).length; fT=first+Math.floor((cnt-1)/2); dismissHint(); };
+const $=id=>document.getElementById(id);
+const store={
+  get(k,d){ try{ const v=localStorage.getItem('kremastra.'+k); return v==null? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem('kremastra.'+k,JSON.stringify(v)); }catch(e){} }
+};
+const euro=n=>'€'+n.toFixed(2).replace('.',',');
+const byId=id=>ITEMS.find(x=>x.id===id);
+const el=(tag,props,kids)=>{ const n=document.createElement(tag); if(props) for(const k in props){ if(k==='class') n.className=props[k]; else if(k==='text') n.textContent=props[k]; else if(k in n) n[k]=props[k]; else n.setAttribute(k,props[k]); }
+  if(kids) for(const c of kids) if(c) n.append(c); return n; };
+function thumb(it){ // a small picture of the garment, taken from the very texture that hangs on the rack
+  if(it.thumb==null){ it.thumb=''; try{ const c=document.createElement('canvas'); c.width=92; c.height=116; c.getContext('2d').drawImage(it.frontCanvas,0,0,92,116); it.thumb=c.toDataURL(); }catch(e){} }
+  return it.thumb; }
+
+$('prev').onclick=()=>go(-1);
+$('next').onclick=()=>go(1);
+$('take').onclick=()=>takeOff(Math.round(fT));
+
+// category tabs
+const tabsEl=$('tabs');
+CATS.forEach((c,ci)=>{ const b=el('button',{id:'tab-'+c.key,type:'button'}); const inCat=ITEMS.filter(i=>i.cat===ci);
+  b.append(c.name, el('span',{text:inCat.length}));
+  b.onclick=()=>{ if(carried>=0) putBack(); fT=inCat[Math.floor((inCat.length-1)/2)].idx; dismissHint(); };
   tabsEl.appendChild(b); });
-const fName=document.getElementById('fName'), fSub=document.getElementById('fSub');
-let lastFocus=-1, lastCat=-1;
+
+// the rack in miniature: one chip per garment, in rail order; click or drag along it to go there
+const railEl=$('minirail'), chips=[];
+ITEMS.forEach((it,i)=>{ if(i && it.cat!==ITEMS[i-1].cat) railEl.append(el('i'));
+  const b=el('button',{class:'chip',type:'button','aria-label':`${it.model}, ${it.colorName}`}); b.style.setProperty('--c',it.color);
+  b.onclick=()=>jump(i); chips.push(b); railEl.append(b); });
+function jump(i){ dismissHint(); if(carried>=0){ if(i!==carried) swapTo(i); } else fT=i; }
+function chipAt(x){ let best=0, bd=1e9; chips.forEach((c,i)=>{ const r=c.getBoundingClientRect(), d=Math.abs(x-(r.left+r.width/2)); if(d<bd){ bd=d; best=i; } }); return best; }
+let scrubbing=false;
+railEl.addEventListener('pointerdown',e=>{ scrubbing=true; railEl.setPointerCapture(e.pointerId); jump(chipAt(e.clientX)); e.preventDefault(); });
+railEl.addEventListener('pointermove',e=>{ if(scrubbing && carried<0) fT=chipAt(e.clientX); });
+railEl.addEventListener('pointerup',()=>{ scrubbing=false; });
+railEl.addEventListener('pointercancel',()=>{ scrubbing=false; });
+
+const fName=$('fName'), fSub=$('fSub');
+let lastFocus=-1, lastCat=-1, lastBack=null;
 function updateUI(){
-  const i=clamp(Math.round(f),0,N-1);
-  if(i!==lastFocus){ lastFocus=i; const it=ITEMS[i]; const inCat=ITEMS.filter(x=>x.cat===it.cat); const pos=inCat.indexOf(it)+1;
-    fName.textContent=it.name; fSub.innerHTML=`<b>€${it.price}</b> · ${CATS[it.cat].name} ${pos}/${inCat.length}`; }
+  const i = carried>=0 ? carried : clamp(Math.round(f),0,N-1);
+  if(i!==lastFocus){ lastFocus=i; const it=ITEMS[i];
+    fName.textContent=it.model; fSub.innerHTML=`<b>${euro(it.price)}</b>&ensp;${it.colorName}`;
+    chips.forEach((c,k)=>c.setAttribute('aria-current',String(k===i)));
+    $('prev').disabled=i===0; $('next').disabled=i===N-1; }
   const c=ITEMS[i].cat; if(c!==lastCat){ lastCat=c; [...tabsEl.children].forEach((b,k)=>b.setAttribute('aria-pressed',String(k===c))); }
+  if(carried>=0){ const back=Math.abs(Math.round(hangables[carried].userYaw/Math.PI))%2===1;
+    if(back!==lastBack){ lastBack=back; $('viewFront').setAttribute('aria-pressed',String(!back)); $('viewBack').setAttribute('aria-pressed',String(back)); } }
 }
-const sheet=document.getElementById('sheet'), focusbar=document.getElementById('focusbar');
-let selSize='M';
+
+/* hang tag: the garment you hold */
+const sheet=$('sheet'), dock=$('dock');
+let selSize=store.get('size','M');
+function flip(toBack){ if(carried<0) return; const h=hangables[carried], k=Math.round(h.userYaw/Math.PI), isBack=Math.abs(k)%2===1;
+  if(toBack===undefined) toBack=!isBack; if(toBack!==isBack) h.userYaw=(k+(k>0?-1:1))*Math.PI; h.spinHeld=false; }
+$('viewFront').onclick=()=>flip(false);
+$('viewBack').onclick=()=>flip(true);
+function fillSheet(i){
+  const it=ITEMS[i];
+  $('sCat').textContent=CATS[it.cat].name;
+  $('sName').textContent=it.model;
+  $('sPrice').textContent=euro(it.price); $('addPrice').textContent=euro(it.price);
+  $('sColor').textContent=it.colorName;
+  $('sDesc').textContent=it.desc;
+  $('sComp').textContent=it.comp; $('sGsm').textContent=it.gsm+' g/m²'; $('sFit').textContent=it.fit;
+  const sw=$('swatches'); sw.textContent='';
+  ITEMS.filter(x=>x.cat===it.cat).forEach(v=>{ const b=el('button',{class:'swatch',type:'button',title:v.colorName,'aria-label':v.colorName,'aria-pressed':String(v===it)});
+    b.style.setProperty('--c',v.color); b.onclick=()=>{ if(v.idx!==carried) swapTo(v.idx); }; sw.append(b); });
+  const sz=$('sizes'); sz.textContent='';
+  if(!it.stock[SIZES.indexOf(selSize)]) selSize=SIZES[it.stock.findIndex(Boolean)];
+  SIZES.forEach((s,k)=>{ const b=el('button',{class:'size',type:'button',id:'size-'+s,text:s,disabled:!it.stock[k],'aria-pressed':String(s===selSize)});
+    if(!it.stock[k]) b.title='Εξαντλήθηκε'; b.onclick=()=>pickSize(s); sz.append(b); });
+  $('sSize').textContent=selSize;
+  const out=SIZES.filter((s,k)=>!it.stock[k]);
+  $('sNote').textContent= out.length ? `Εξαντλήθηκε: ${out.join(', ')}` : '';
+  $('favToggle').setAttribute('aria-pressed',String(favs.includes(it.id)));
+  resetAdd();
+}
+function pickSize(s){ selSize=s; store.set('size',s); $('sSize').textContent=s;
+  [...$('sizes').children].forEach(x=>x.setAttribute('aria-pressed',String(x.textContent===s))); resetAdd(); }
+function setHash(it){ try{ history.replaceState(null,'', it ? '#'+it.id : location.pathname+location.search); }catch(e){} }
 function takeOff(i){
-  if(i<0||i>=N) return;
+  if(i<0||i>=N||carried>=0) return;
   carried=i; const h=hangables[i]; h.carried=true; h.userYaw=0; h.spinHeld=false; h.mode='off';
   // lift the hook off the rail first, then bring it forward and down to the viewer
   h.path={t:0, e:0, dur:reduce?.3:1.15, p0:new THREE.Vector3(h.x,h.y,h.z), c1:new THREE.Vector3(0,.17,.03), c2:new THREE.Vector3(0,.06,-.3)};
-  const it=ITEMS[i];
-  document.getElementById('sCat').textContent=CATS[it.cat].name;
-  document.getElementById('sName').textContent=it.name;
-  document.getElementById('sPrice').textContent='€'+it.price.toFixed(2).replace('.',',');
-  document.getElementById('sDesc').textContent=it.desc;
-  document.getElementById('sComp').textContent=it.comp;
-  document.getElementById('sGsm').textContent=it.gsm+' g/m²';
-  document.getElementById('sFit').textContent=it.fit;
-  const sz=document.getElementById('sizes'); sz.innerHTML='';
-  if(!it.stock[SIZES.indexOf(selSize)]) selSize=SIZES[it.stock.findIndex(Boolean)];
-  SIZES.forEach((s,k)=>{ const b=document.createElement('button'); b.type='button'; b.className='size'; b.id='size-'+s; b.textContent=s; b.disabled=!it.stock[k];
-    b.setAttribute('aria-pressed',String(s===selSize)); b.onclick=()=>{ selSize=s; [...sz.children].forEach(x=>x.setAttribute('aria-pressed',String(x===b))); updStock(); }; sz.appendChild(b); });
-  function updStock(){ const left=((i*3+SIZES.indexOf(selSize)*5)%7)+1; document.getElementById('sStock').textContent= left<=2? `Μόνο ${left} ακόμα` : 'Διαθέσιμο'; }
-  updStock();
-  sheet.classList.add('open'); sheet.setAttribute('aria-hidden','false'); focusbar.classList.add('away');
-  canvasEl.classList.remove('hovering');
+  fillSheet(i); setHash(ITEMS[i]); lastBack=null;
+  sheet.classList.add('open'); sheet.inert=false; dock.classList.add('away');
+  canvasEl.classList.remove('hovering'); hideTip(); hinted=true; hint.classList.add('gone');
 }
-function putBack(){
+function putBack(keepOpen){
   if(carried<0) return; const h=hangables[carried]; h.carried=false; h.userYaw=0; h.spinHeld=false; h.mode='back';
   // carry it back above the rail and lower the hook onto it
   h.yaw-=Math.round(h.yaw/(2*Math.PI))*2*Math.PI; // a garment spun round goes back the short way
   h.path={t:0, e:0, dur:reduce?.3:1.05, p0:new THREE.Vector3(h.x,h.y,h.z), c1:new THREE.Vector3(0,.06,-.18), c2:new THREE.Vector3(0,.16,0)};
   fT=carried; carried=-1;
-  sheet.classList.remove('open'); sheet.setAttribute('aria-hidden','true'); focusbar.classList.remove('away');
+  if(keepOpen) return;
+  if(sheet.contains(document.activeElement)) $('take').focus({preventScroll:true});
+  sheet.classList.remove('open'); sheet.inert=true; dock.classList.remove('away'); setHash(null);
 }
-document.getElementById('putBack').onclick=putBack;
-let cart=0; const cartEl=document.getElementById('cartCount'), toast=document.getElementById('toast'); let toastT=0;
-document.getElementById('addCart').onclick=()=>{ if(carried<0) return; cart++; cartEl.textContent=cart;
-  toast.textContent=`Προστέθηκε: ${ITEMS[carried].name} · ${selSize}`; toast.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>toast.classList.remove('show'),2200); };
-const hint=document.getElementById('hint'); let hinted=false;
+// another colour or another garment while one is in your hand: this one goes back, that one comes off, the tag stays
+function swapTo(i){ putBack(true); fT=i; takeOff(i); }
+$('putBack').onclick=()=>putBack();
+$('closeTag').onclick=()=>putBack();
+
+/* cart & favourites (kept in this browser) */
+let cart=store.get('cart',[]).filter(l=>l && byId(l.id) && SIZES.includes(l.size) && l.qty>0);
+let favs=store.get('favs',[]).filter(byId);
+const cartEl=$('cartCount'), favEl=$('favCount'), toast=$('toast'); let toastT=0;
+function say(msg){ toast.textContent=msg; toast.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>toast.classList.remove('show'),2600); }
+const cartQty=()=>cart.reduce((s,l)=>s+l.qty,0), cartSum=()=>cart.reduce((s,l)=>s+l.qty*byId(l.id).price,0);
+function setCount(node,n,bump){ node.textContent=n; node.dataset.n=n; if(bump){ node.classList.remove('bump'); void node.offsetWidth; node.classList.add('bump'); } }
+function syncCart(bump){ store.set('cart',cart); setCount(cartEl,cartQty(),bump);
+  $('cartBtn').setAttribute('aria-label',`Καλάθι, ${cartQty()} τεμάχια`);
+  chips.forEach((c,k)=>c.classList.toggle('incart',cart.some(l=>l.id===ITEMS[k].id)));
+  if(drawerOpen) renderDrawer(); }
+function syncFavs(bump){ store.set('favs',favs); setCount(favEl,favs.length,bump);
+  if(carried>=0) $('favToggle').setAttribute('aria-pressed',String(favs.includes(ITEMS[carried].id)));
+  if(drawerOpen) renderDrawer(); }
+let addT=0;
+function resetAdd(){ clearTimeout(addT); $('addCart').classList.remove('done'); $('addLbl').textContent='Προσθήκη στο καλάθι'; }
+function flyToCart(it){
+  if(reduce || !document.body.animate) return;
+  const a=$('addCart').getBoundingClientRect(), b=$('cartBtn').getBoundingClientRect();
+  const d=el('div',{class:'fly'}); d.style.setProperty('--c',it.color); document.body.append(d);
+  const x0=a.left+a.width/2-11, y0=a.top-10, x1=b.left+b.width/2-11, y1=b.top+b.height/2-14;
+  d.animate([{transform:`translate(${x0}px,${y0}px) rotate(-8deg)`,opacity:1},
+    {transform:`translate(${(x0+x1)/2}px,${Math.min(y0,y1)-60}px) rotate(10deg)`,opacity:1,offset:.55},
+    {transform:`translate(${x1}px,${y1}px) rotate(0) scale(.4)`,opacity:.2}],{duration:650,easing:'cubic-bezier(.4,0,.2,1)'}).onfinish=()=>d.remove();
+}
+$('addCart').onclick=()=>{ if(carried<0) return; const it=ITEMS[carried];
+  const line=cart.find(l=>l.id===it.id && l.size===selSize); if(line) line.qty++; else cart.push({id:it.id,size:selSize,qty:1});
+  flyToCart(it); syncCart(true);
+  $('addCart').classList.add('done'); $('addLbl').textContent='Μπήκε στο καλάθι'; clearTimeout(addT); addT=setTimeout(resetAdd,1800);
+  say(`Μπήκε στο καλάθι: ${it.model}, ${it.colorName}, ${selSize}`); };
+$('favToggle').onclick=()=>{ if(carried<0) return; const id=ITEMS[carried].id, k=favs.indexOf(id);
+  if(k>=0) favs.splice(k,1); else favs.push(id); syncFavs(k<0); };
+$('shareBtn').onclick=()=>{ if(carried<0) return; const url=location.href.split('#')[0]+'#'+ITEMS[carried].id;
+  const done=()=>say('Ο σύνδεσμος για αυτό το ρούχο αντιγράφηκε'), fail=()=>say('Η αντιγραφή δεν έγινε. Αντίγραψε τη διεύθυνση από τον browser.');
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done,fail); else fail(); };
+
+/* the receipt drawer */
+const drawer=$('drawer'), scrim=$('scrim'); let drawerOpen=false, drawerTab='cart', drawerFrom=null;
+function openDrawer(tab){ drawerTab=tab; drawerOpen=true; drawerFrom=document.activeElement; renderDrawer();
+  $('rTime').textContent=new Date().toLocaleString('el-GR',{dateStyle:'medium',timeStyle:'short'});
+  drawer.classList.add('open'); drawer.inert=false; scrim.classList.add('on'); hideTip(); toast.classList.remove('show'); $('closeDrawer').focus({preventScroll:true}); }
+function closeDrawer(){ drawerOpen=false; drawer.classList.remove('open'); drawer.inert=true; scrim.classList.remove('on');
+  if(drawerFrom && drawerFrom.focus) drawerFrom.focus({preventScroll:true}); }
+function show(it){ closeDrawer(); if(carried===it.idx) return; if(carried>=0) swapTo(it.idx); else { fT=it.idx; takeOff(it.idx); } }
+function orderText(){ return ['Παραγγελία από την Κρεμάστρα', ...cart.map(l=>{ const it=byId(l.id); return `${l.qty} × ${it.model}, ${it.colorName}, ${l.size}: ${euro(l.qty*it.price)}`; }), `Σύνολο: ${euro(cartSum())}`].join('\n'); }
+function pic(it){ const t=thumb(it); return t ? el('img',{src:t,alt:'',width:46,height:58}) : el('div',{class:'ph'}); }
+function renderDrawer(){
+  const body=$('rBody'), foot=$('rFoot'); body.textContent=''; foot.textContent='';
+  $('rTabCart').textContent=`Καλάθι (${cartQty()})`; $('rTabFav').textContent=`Αγαπημένα (${favs.length})`;
+  $('rTabCart').setAttribute('aria-pressed',String(drawerTab==='cart')); $('rTabFav').setAttribute('aria-pressed',String(drawerTab==='favs'));
+  if(drawerTab==='cart'){
+    if(!cart.length){ body.append(el('div',{class:'r-empty',text:'Το καλάθι είναι άδειο. Βγάλε ένα ρούχο από την κρεμάστρα, διάλεξε μέγεθος και πρόσθεσέ το.'})); return; }
+    cart.forEach(l=>{ const it=byId(l.id);
+      const name=el('button',{type:'button',text:it.model}); name.onclick=()=>show(it);
+      const minus=el('button',{type:'button',text:'−','aria-label':'Ένα λιγότερο'}), plus=el('button',{type:'button',text:'+','aria-label':'Ένα ακόμα'});
+      minus.onclick=()=>{ l.qty--; if(l.qty<=0) cart.splice(cart.indexOf(l),1); syncCart(); };
+      plus.onclick=()=>{ l.qty++; syncCart(); };
+      const rm=el('button',{class:'rm',type:'button',text:'Αφαίρεση'}); rm.onclick=()=>{ cart.splice(cart.indexOf(l),1); syncCart(); };
+      body.append(el('div',{class:'r-line'},[pic(it),
+        el('div',{class:'t'},[name, el('small',{text:`${it.colorName}, ${l.size}`}), el('div',{class:'qty'},[minus, el('span',{text:l.qty}), plus])]),
+        el('div',{class:'p'},[euro(l.qty*it.price), rm])])); });
+    const canShare=!!navigator.share;
+    const send=el('button',{class:'btn primary',type:'button',text: canShare ? 'Αποστολή παραγγελίας' : 'Αντιγραφή παραγγελίας'});
+    send.onclick=()=>{ const text=orderText(), copied=()=>say('Η παραγγελία αντιγράφηκε. Επικόλλησέ τη σε μήνυμα για να τη στείλεις.');
+      if(canShare) navigator.share({text}).catch(()=>{});
+      else if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(copied,()=>say('Η αντιγραφή δεν έγινε.'));
+      else say('Η αντιγραφή δεν έγινε.'); };
+    const clear=el('button',{class:'linkbtn',type:'button',text:'Άδειασμα καλαθιού'}); clear.onclick=()=>{ cart=[]; syncCart(); };
+    foot.append(el('div',{class:'r-total'},[el('span',{text:`Σύνολο, ${cartQty()} τεμ.`}), el('b',{text:euro(cartSum())})]), send,
+      el('p',{text:'Η πληρωμή δεν γίνεται εδώ. Στέλνεις την παραγγελία με μήνυμα και κανονίζουμε τα υπόλοιπα.'}), clear);
+  } else {
+    if(!favs.length){ body.append(el('div',{class:'r-empty',text:'Δεν έχεις κρατήσει κάτι ακόμα. Πάτα την καρδιά σε όποιο ρούχο θες να ξαναδείς.'})); return; }
+    favs.map(byId).forEach(it=>{ const name=el('button',{type:'button',text:it.model}); name.onclick=()=>show(it);
+      const rm=el('button',{class:'rm',type:'button',text:'Αφαίρεση'}); rm.onclick=()=>{ favs.splice(favs.indexOf(it.id),1); syncFavs(); };
+      body.append(el('div',{class:'r-line'},[pic(it), el('div',{class:'t'},[name, el('small',{text:it.colorName})]), el('div',{class:'p'},[euro(it.price), rm])])); });
+  }
+}
+$('cartBtn').onclick=()=>openDrawer('cart');
+$('favBtn').onclick=()=>openDrawer('favs');
+$('closeDrawer').onclick=closeDrawer; scrim.onclick=closeDrawer;
+$('rTabCart').onclick=()=>{ drawerTab='cart'; renderDrawer(); };
+$('rTabFav').onclick=()=>{ drawerTab='favs'; renderDrawer(); };
+syncCart(); syncFavs();
+
+/* size guide. Indicative measurements in cm (half chest, length); replace with the real ones per garment. */
+const GUIDE={ tee:[[49,66],[52,69],[55,72],[58,74],[61,76],[64,78]], hoodie:[[52,64],[55,67],[58,70],[61,72],[64,74],[67,76]], tank:[[44,66],[47,69],[50,72],[53,74],[56,76],[59,78]] };
+const guide=$('guide');
+function suggest(){ const hgt=+$('gH').value, w=+$('gW').value; if(!(hgt>=140 && hgt<=215 && w>=40 && w<=160)) return -1;
+  let k = w<58?0 : w<68?1 : w<78?2 : w<88?3 : w<98?4 : 5; if(hgt>=190) k++; if(hgt<165) k--; return clamp(k,0,5); }
+function renderGuide(){ const it=ITEMS[carried>=0?carried:clamp(Math.round(f),0,N-1)], rec=suggest(), rows=$('gRows'); rows.textContent='';
+  $('guideTitle').textContent=`Οδηγός μεγεθών, ${CATS[it.cat].name.toLowerCase()}`;
+  GUIDE[it.type].forEach(([a,b],k)=>rows.append(el('tr',{class:k===rec?'rec':''},[el('td',{text:SIZES[k]}),el('td',{text:a+' cm'}),el('td',{text:b+' cm'})])));
+  const out=$('gOut'); out.textContent='';
+  if(rec<0) out.textContent='Γράψε ύψος και βάρος για να σου προτείνουμε μέγεθος.';
+  else { const s=SIZES[rec], ok=it.stock[rec], use=el('button',{class:'btn',type:'button',text:`Διάλεξε ${s}`});
+    use.onclick=()=>{ if(carried>=0) pickSize(s); else { selSize=s; store.set('size',s); } guide.close(); };
+    out.append(el('span',{},['Σου προτείνουμε ', el('b',{text:s}), ok?'':' (εξαντλήθηκε σε αυτό το χρώμα)']), ok?use:''); }
+  $('gNote').textContent= it.fit==='Oversized' ? 'Η γραμμή είναι oversized, πέφτει φαρδιά. Για πιο εφαρμοστό πάρε ένα μέγεθος κάτω. Οι μετρήσεις είναι ενδεικτικές, με το ρούχο απλωμένο.' : 'Οι μετρήσεις είναι ενδεικτικές, με το ρούχο απλωμένο. Ανάμεσα σε δύο μεγέθη, πάρε το μεγαλύτερο.';
+}
+$('openGuide').onclick=()=>{ renderGuide(); guide.showModal(); };
+$('closeGuide').onclick=()=>guide.close();
+guide.addEventListener('click',e=>{ if(e.target===guide) guide.close(); });
+$('gH').oninput=$('gW').oninput=renderGuide;
+
+/* day / night: the shop lights go down and one spotlight follows the garment in front of you */
+const themeBtn=$('themeBtn');
+function setTheme(nightOn,save){ nightT=nightOn?1:0; document.documentElement.dataset.theme=nightOn?'night':'day';
+  themeBtn.setAttribute('aria-pressed',String(nightOn)); themeBtn.setAttribute('aria-label',nightOn?'Φώτα ημέρας':'Νυχτερινή βιτρίνα');
+  $('themeColor').content=nightOn?'#151416':'#c9c1b4'; if(save) store.set('night',nightOn); }
+setTheme(store.get('night', matchMedia('(prefers-color-scheme: dark)').matches)); night=nightT;
+themeBtn.onclick=()=>setTheme(!nightT,true);
+
+/* label by the pointer */
+const tip=$('tip'); let tipI=-1;
+function showTip(i,x,y){ const key2=i+(i===Math.round(fT)?'f':''); if(key2!==tipI){ tipI=key2; const it=ITEMS[i]; tip.textContent=''; tip.append(it.model, el('b',{text:euro(it.price)}), el('small',{text:`${it.colorName}. ${i===Math.round(fT)?'Κλικ για να το βγάλεις':'Κλικ για να το φέρεις μπροστά'}`})); }
+  tip.style.transform=`translate(${Math.min(x+16,innerWidth-tip.offsetWidth-8)}px,${Math.max(8,y-tip.offsetHeight-14)}px)`; tip.classList.add('on'); }
+function hideTip(){ tipI=-1; tip.classList.remove('on'); }
+
+const hint=$('hint'); let hinted=false;
 function dismissHint(){ if(hinted) return; hinted=true; setTimeout(()=>hint.classList.add('gone'),1800); }
+
+// a link to one garment (#tee-mavro) opens the page with that garment in your hand
+(function(){ const it=byId(decodeURIComponent(location.hash.slice(1))); if(!it) return;
+  fT=it.idx; f=it.idx-1.2; computeTargets(); for(const h of hangables){ h.x=h.tgt.x; h.yaw=h.tYaw; } takeOff(it.idx); })();
 
 addEventListener('resize',()=>{ renderer.setSize(innerWidth,innerHeight); layoutCamera(); });
 
@@ -964,14 +1406,15 @@ setTimeout(()=>document.getElementById('loading').classList.add('done'),120);
     hoodieFront:'img/hoodie-front.png',hoodieBack:'img/hoodie-back.png',artLogo:'img/art-logo.png',artPanther:'img/art-panther.png',
     stathisFront:'img/stathis-front.png',stathisBack:'img/stathis-back.png'};
   const load=u=>new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=u; });
-  const photos=Promise.all(Object.entries(SRC).map(([k,u])=>load(u).then(im=>[k,im]))).then(list=>{
+  let got=0; const total=Object.keys(SRC).length, bar=document.getElementById('loadBar');
+  const photos=Promise.all(Object.entries(SRC).map(([k,u])=>load(u).then(im=>{ bar.style.setProperty('--p',++got/total); return [k,im]; }))).then(list=>{
     const P=Object.fromEntries(list);
     // file:// pages can't read pixels back from images; then keep the drawn garments
     try{ const c=document.createElement('canvas'); c.width=c.height=2; const g=c.getContext('2d'); g.drawImage(P.teeFront,0,0,2,2); g.getImageData(0,0,1,1); }
     catch(e){ console.warn('Οι φωτογραφίες θέλουν server (όχι file://). Δείχνω τα ζωγραφιστά ρούχα.'); return null; }
     return P;
   }).catch(()=>null);
-  const fl = document.fonts && document.fonts.load ? Promise.all([document.fonts.load('900 52px Commissioner'),document.fonts.load('800 18px Commissioner')]).catch(()=>{}) : Promise.resolve();
+  const fl = document.fonts && document.fonts.load ? Promise.all([document.fonts.load('900 52px Commissioner'),document.fonts.load('800 18px Commissioner'),document.fonts.load('900 40px "Sofia Sans Extra Condensed"','Κρεμάστρα')]).catch(()=>{}) : Promise.resolve();
   const timeout=new Promise(r=>setTimeout(r,2500));
   let started=false;
   Promise.all([photos, Promise.race([fl,timeout])]).then(([P])=>{ if(started) return; started=true; kremastraMain(P); });
