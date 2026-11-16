@@ -76,6 +76,7 @@ header > *{pointer-events:auto}
 nav.tabs{display:flex;gap:2px;border-radius:999px;padding:4px}
 nav.tabs button{font:600 13px/1 var(--f-ui);border:0;background:transparent;padding:9px 14px;border-radius:999px;cursor:pointer;display:flex;gap:7px;align-items:center;transition:background .2s,color .2s}
 nav.tabs button span{font-weight:500;font-size:11px;opacity:.55;font-variant-numeric:tabular-nums}
+nav.tabs button[hidden]{display:none}
 nav.tabs button:hover{background:color-mix(in srgb,var(--on-wall) 9%,transparent)}
 nav.tabs button[aria-pressed="true"]{background:var(--on-wall);color:var(--glass-solid)}
 .tools{margin-left:auto;display:flex;gap:6px}
@@ -108,15 +109,25 @@ nav.tabs button[aria-pressed="true"]{background:var(--on-wall);color:var(--glass
 .fmeta .s b{color:var(--on-wall);font-weight:700;font-variant-numeric:tabular-nums}
 .take{height:40px;border-radius:12px;border:0;background:var(--on-wall);color:var(--glass-solid);font:700 13px/1 var(--f-ui);padding:0 14px;cursor:pointer;flex:none}
 .take:hover{filter:brightness(1.15)}
-.minirail{position:relative;display:flex;justify-content:center;align-items:flex-start;gap:4px;padding:9px 10px 2px;touch-action:none;cursor:pointer;user-select:none}
-.minirail::before{content:"";position:absolute;left:6px;right:6px;top:3px;height:2px;border-radius:2px;background:color-mix(in srgb,var(--on-wall) 55%,transparent)}
-.minirail i{width:12px;flex:none}
+.minirail{display:flex;flex-direction:column;gap:5px;padding:0 4px 2px;touch-action:none;cursor:pointer;user-select:none}
+.mrow{position:relative;display:flex;justify-content:center;align-items:flex-start;gap:4px;padding:9px 6px 0;transition:opacity .3s}
+.mrow::before{content:"";position:absolute;left:2px;right:2px;top:3px;height:2px;border-radius:2px;background:color-mix(in srgb,var(--on-wall) 55%,transparent)}
+.mrow.off{opacity:.42}
+.mrow.off .chip[aria-current="true"]{transform:none;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--on-wall) 30%,transparent)}
+.mrow i{width:12px;flex:none}
+/* the lift: a stop for each rail, at the left edge */
+.lift{position:fixed;left:var(--sl);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2px;padding:4px;border-radius:18px;transition:opacity .3s,transform .3s}
+.lift.away{opacity:0;pointer-events:none;transform:translate(-12px,-50%)}
+.lift button{width:74px;border:0;background:transparent;border-radius:14px;padding:9px 4px 7px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font:600 11px/1 var(--f-ui);transition:background .2s,color .2s}
+.lift button svg{width:22px;height:22px}
+.lift button:hover{background:color-mix(in srgb,var(--on-wall) 9%,transparent)}
+.lift button[aria-pressed="true"]{background:var(--on-wall);color:var(--glass-solid)}
 .chip{position:relative;width:11px;height:19px;border-radius:2px 2px 3px 3px;border:0;padding:0;background:var(--c);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--on-wall) 30%,transparent);cursor:pointer;flex:none;transform-origin:50% -6px;transition:transform .25s var(--ease)}
 .chip::before{content:"";position:absolute;left:50%;top:-6px;width:1.5px;height:6px;margin-left:-.75px;background:color-mix(in srgb,var(--on-wall) 55%,transparent)}
 .chip::after{content:"";position:absolute;inset:-8px -2.5px -6px}
 .chip[aria-current="true"]{transform:scale(1.42) rotate(-7deg);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--on-wall) 30%,transparent),0 0 0 1.5px var(--glass-solid),0 0 0 3px var(--on-wall)}
 .chip.incart::after{background:radial-gradient(circle 2.5px at 50% calc(100% - 2.5px),var(--stamp) 96%,transparent)}
-.hint{position:fixed;left:50%;bottom:calc(var(--sb) + 124px);transform:translateX(-50%);font:500 12px/1.4 var(--f-ui);color:var(--on-wall-muted);white-space:nowrap;pointer-events:none;transition:opacity .6s}
+.hint{position:fixed;left:50%;bottom:calc(var(--sb) + 150px);transform:translateX(-50%);font:500 12px/1.4 var(--f-ui);color:var(--on-wall-muted);white-space:nowrap;pointer-events:none;transition:opacity .6s}
 .hint.gone{opacity:0}
 .hint kbd{font:600 11px/1 var(--f-ui);border:1px solid var(--glass-line);border-radius:5px;padding:2px 5px;margin:0 1px}
 
@@ -269,8 +280,10 @@ dialog::backdrop{background:rgba(18,14,10,.5)}
   .dockcard{width:100%}
   .fmeta .n{font-size:20px}
   .take{padding:0 12px}
-  .hint{bottom:calc(var(--sb) + 118px);font-size:11.5px;white-space:normal;text-align:center;width:calc(100% - 32px)}
+  .hint{bottom:calc(var(--sb) + 146px);font-size:11.5px;white-space:normal;text-align:center;width:calc(100% - 32px)}
   .hint .k{display:none}
+  .lift button{width:62px;padding:8px 2px 6px;font-size:9.5px}
+  .lift button svg{width:20px;height:20px}
   /* phone: a short tag at the bottom, the garment hangs in the free space above it */
   .dock.away{opacity:0;pointer-events:none}
   aside.sheet{top:auto;left:var(--sl);right:var(--sr);bottom:calc(var(--sb) + 10px);width:auto;height:clamp(300px,40vh,360px);transform:translateY(calc(100% + 60px));transform-origin:50% 0}
@@ -325,7 +338,8 @@ dialog::backdrop{background:rgba(18,14,10,.5)}
   </div>
 </header>
 
-<div class="hint" id="hint">Σύρε ή κάνε scroll για να ψάξεις. Κλικ στο ρούχο για να το βγάλεις<span class="k">, ή πάτα <kbd>←</kbd> <kbd>→</kbd> και <kbd>Enter</kbd></span></div>
+<div class="hint" id="hint">Σύρε στο πλάι για να ψάξεις, πάνω ή κάτω για την άλλη κρεμάστρα. Κλικ στο ρούχο για να το βγάλεις<span class="k">, ή πάτα <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> και <kbd>Enter</kbd></span></div>
+<div class="lift glass" id="lift" role="group" aria-label="Κρεμάστρες"></div>
 <div class="tip" id="tip" aria-hidden="true"></div>
 
 <div class="dock" id="dock">
@@ -336,7 +350,7 @@ dialog::backdrop{background:rgba(18,14,10,.5)}
       <button class="take" id="take" type="button">Δες το</button>
       <button class="arrow" id="next" type="button" aria-label="Επόμενο ρούχο"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg></button>
     </div>
-    <div class="minirail" id="minirail" role="group" aria-label="Όλα τα ρούχα της κρεμάστρας"></div>
+    <div class="minirail" id="minirail" role="group" aria-label="Όλα τα ρούχα, στις δύο κρεμάστρες"></div>
   </div>
 </div>
 
@@ -401,7 +415,7 @@ dialog::backdrop{background:rgba(18,14,10,.5)}
       </div>
       <output id="gOut">Γράψε ύψος και βάρος για να σου προτείνουμε μέγεθος.</output>
     </div>
-    <table><thead><tr><th>Μέγεθος</th><th>Πλάτος στήθους</th><th>Μήκος</th></tr></thead><tbody id="gRows"></tbody></table>
+    <table><thead><tr><th>Μέγεθος</th><th id="gCol">Πλάτος στήθους</th><th>Μήκος</th></tr></thead><tbody id="gRows"></tbody></table>
     <p id="gNote"></p>
   </div>
 </dialog>
@@ -414,10 +428,14 @@ function kremastraMain(PHOTOS){
 'use strict';
 /* ------------------------------------------------------------------ data */
 const CATS = [
-  {key:'tank',  name:'Αμάνικα'},
-  {key:'hoodie',name:'Hoodies'},
-  {key:'tee',   name:'Κοντομάνικα'}
+  {key:'tank',  name:'Αμάνικα', rack:0},
+  {key:'hoodie',name:'Hoodies', rack:0},
+  {key:'tee',   name:'Κοντομάνικα', rack:0},
+  {key:'pants', name:'Φόρμες', rack:1},
+  {key:'shorts',name:'Σορτς', rack:1}
 ];
+// two rails, one above the other: the camera rides down a storey to the lower one
+const RACKS = [{name:'Μπλούζες'},{name:'Παντελόνια'}];
 // One design (the owner's STATHIS panther) on three garments, in several colours. Prices and fabric details are placeholders.
 const RAW = [
   {cat:0,name:'Αμάνικο STATHIS Πάνθηρας · Μαύρο',color:'#151515',ink:'#f2f2f2',print:'stathis',price:24,comp:'100% βαμβάκι',gsm:190,fit:'Κανονική',desc:'Αμάνικο σε μαύρο, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
@@ -432,16 +450,26 @@ const RAW = [
   {cat:2,name:'T-shirt STATHIS Πάνθηρας · Λευκό',color:'#f1efe9',ink:'#141414',print:'stathis',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Κανονική',desc:'Μπλουζάκι σε λευκό, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
   {cat:2,name:'T-shirt STATHIS Πάνθηρας · Μπορντό',color:'#6e1f2a',ink:'#f2ece2',print:'stathis',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Κανονική',desc:'Μπλουζάκι σε μπορντό, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
   {cat:2,name:'T-shirt STATHIS Πάνθηρας · Χακί',color:'#55603f',ink:'#efe9d6',print:'stathis',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Κανονική',desc:'Μπλουζάκι σε χακί, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
-  {cat:2,name:'T-shirt STATHIS Πάνθηρας · Άμμος',color:'#d6c19c',ink:'#141414',print:'stathis',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Κανονική',desc:'Μπλουζάκι σε άμμος, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'}
+  {cat:2,name:'T-shirt STATHIS Πάνθηρας · Άμμος',color:'#d6c19c',ink:'#141414',print:'stathis',price:29,comp:'100% βαμβάκι',gsm:240,fit:'Κανονική',desc:'Μπλουζάκι σε άμμος, με το λογότυπο STATHIS μπροστά και τον πάνθηρα στην πλάτη.'},
+  ...[['Μαύρο','#151515','#f2f2f2'],['Γκρι μελανζέ','#9a9b9e','#141414'],['Μπορντό','#6e1f2a','#f2ece2'],['Navy','#1e2a45','#eeeae0'],['Χακί','#55603f','#efe9d6']].map(([n,color,ink])=>(
+    {cat:3,name:'Φόρμα STATHIS Πάνθηρας · '+n,color,ink,print:'stathis',price:45,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:320,fit:'Κανονική',desc:`Φόρμα με λάστιχο στον αστράγαλο σε ${n.toLowerCase()}, με το λογότυπο STATHIS στον μηρό και τον πάνθηρα πίσω στο πόδι.`})),
+  ...[['Μαύρο','#151515','#f2f2f2'],['Γκρι μελανζέ','#9a9b9e','#141414'],['Μπορντό','#6e1f2a','#f2ece2'],['Άμμος','#d6c19c','#141414']].map(([n,color,ink])=>(
+    {cat:4,name:'Σορτς STATHIS Πάνθηρας · '+n,color,ink,print:'stathis',price:28,comp:'80% βαμβάκι · 20% πολυεστέρας',gsm:280,fit:'Κανονική',desc:`Σορτς σε ${n.toLowerCase()}, με το λογότυπο STATHIS στον μηρό και τον πάνθηρα πίσω στο πόδι.`}))
 ];
 const SIZES = ['XS','S','M','L','XL','XXL'];
 const COLOR_SLUG={'Μαύρο':'mavro','Λευκό':'lefko','Μπορντό':'bornto','Χακί':'haki','Γκρι μελανζέ':'gkri','Navy':'navy','Άμμος':'ammos'};
 const ITEMS = RAW.map((r,i)=>Object.assign({}, r, {
-  idx:i, type:CATS[r.cat].key, seed: (i*7.31)%6.28,
+  idx:i, type:CATS[r.cat].key, rack:CATS[r.cat].rack, seed: (i*7.31)%6.28,
   model:r.name.split(' · ')[0], colorName:r.name.split(' · ')[1], id:CATS[r.cat].key+'-'+COLOR_SLUG[r.name.split(' · ')[1]],
   stock: SIZES.map((s,k)=> ((i*5 + k*3) % 11) !== 0 && !(k===0 && i%3===0))
 }));
 const N = ITEMS.length;
+// per rail: first and last item, first category, and the place it was last left at
+const RK = RACKS.map((r,k)=>{ const mine=ITEMS.filter(it=>it.rack===k); return {lo:mine[0].idx, hi:mine[mine.length-1].idx, cat0:mine[0].cat, f:mine[Math.min(3,mine.length-1)].idx}; });
+let R=0, LO=RK[0].lo, HI=RK[0].hi; // the rail in front of you and its item range
+const SCALE={pants:1.3, shorts:1.3};          // trousers are longer than the 512x640 frame the tops fill
+const CLIPPED={pants:1, shorts:1};            // hung from the waistband on a clip hanger
+const HANG={pants:.57, shorts:.36};           // from the hook down to the middle of the garment (tops: .37)
 
 /* ------------------------------------------------------------------ helpers */
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -455,8 +483,8 @@ function lum(hex){const n=parseInt(hex.slice(1),16);return (0.3*(n>>16)+0.59*((n
 
 /* ------------------------------------------------------------------ garment silhouettes (canvas px, 512 x 640) */
 const CW=512, CH=640;
-const NECK = {tee:40, tank:28, hoodie:44};
-const THICK = {tee:0.022, tank:0.016, hoodie:0.04};
+const NECK = {tee:40, tank:28, hoodie:44, pants:34, shorts:34};
+const THICK = {tee:0.022, tank:0.016, hoodie:0.04, pants:0.03, shorts:0.026};
 function pathTee(){const p=new Path2D();
   p.moveTo(200,40); p.quadraticCurveTo(256,60,312,40);
   p.lineTo(372,58); p.quadraticCurveTo(432,90,476,150); p.lineTo(426,206);
@@ -477,7 +505,11 @@ function pathHoodie(){const p=new Path2D();
   p.quadraticCurveTo(256,632,118,622); p.lineTo(122,560); p.lineTo(116,330);
   p.lineTo(106,566); p.lineTo(102,612); p.lineTo(38,606); p.lineTo(42,560);
   p.lineTo(58,262); p.quadraticCurveTo(68,112,120,76); p.closePath(); return p;}
-const PATHS={tee:pathTee,tank:pathTank,hoodie:pathHoodie};
+function pathLegs(o,inn){ return ()=>{ const p=new Path2D(), pts=o.concat(inn), all=pts.concat(pts.slice().reverse().map(([x,y])=>[512-x,y]));
+  all.forEach(([x,y],k)=> k? p.lineTo(x,y) : p.moveTo(x,y)); p.closePath(); return p; }; }
+const PATHS={tee:pathTee,tank:pathTank,hoodie:pathHoodie,
+  pants:pathLegs([[374,34],[376,68],[394,170],[380,380],[354,574],[346,622]],[[294,622],[287,574],[268,380],[256,268]]),
+  shorts:pathLegs([[374,34],[376,68],[395,170],[398,338]],[[268,344],[256,262]])};
 
 /* ------------------------------------------------------------------ texture painting */
 function fitText(g,txt,maxW,size,weight){
@@ -606,7 +638,7 @@ function paintGarment(item, back){
    An item with photo:'<key>' uses that real colour photo as-is instead. */
 const TS_LO=1, TS_HI=2; // garments are painted small for the rail first and repainted sharp when there is time (or when picked)
 const PHOTO_NECK={tee:31, tank:31, hoodie:112};   // frame y that sits on the hanger
-const ANCH={ // print positions on the photo frame (512x640 coords)
+const ANCH={ pants:{chest:200}, shorts:{chest:200}, // print positions on the photo frame (512x640 coords)
   tee:{chest:150, logo:[330,116], pocket:[294,94,60,70]},
   tank:{chest:170, logo:[300,150]},
   hoodie:{chest:300, logo:[318,244], sleeve:[[118,232,112,540],[394,232,400,540]]}
@@ -616,7 +648,8 @@ const pixCache=new Map();
 function pix(img,ts){ const k=img.src+'@'+ts; if(!pixCache.has(k)) pixCache.set(k,pixels(img,ts)); return pixCache.get(k); }
 /* the owner's artwork, cut out of the mockup as white ink (img/art-*.png): small logo on the chest, panther on the back.
    [centre x, centre y, width] on the 512x640 garment frame */
-const ART_POS={ tee:{logo:[256,165,42], panther:[256,198,190]}, tank:{logo:[256,190,40], panther:[256,222,168]}, hoodie:{logo:[256,285,46], panther:[256,365,212]} };
+const ART_POS={ tee:{logo:[256,165,42], panther:[256,198,190]}, tank:{logo:[256,190,40], panther:[256,222,168]}, hoodie:{logo:[256,285,46], panther:[256,365,212]},
+  pants:{logo:[322,196,40], panther:[190,330,104]}, shorts:{logo:[322,190,40], panther:[186,214,96]} };
 const inkCache=new Map();
 function inked(img,ink){ const k=img.src+ink; if(inkCache.has(k)) return inkCache.get(k);
   const c=document.createElement('canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; const g=c.getContext('2d');
@@ -664,7 +697,7 @@ function photoTexture(item, img, back, ts){
   // only the part of the garment that carries the print needs the fold lookup
   let bx0=0, by0=0, bx1=PW, by1=PH;
   if(item.print==='stathis' && PHOTOS){ const im=PHOTOS[back?'artPanther':'artLogo'], [cx,cy,w]=ART_POS[item.type][back?'panther':'logo'], h=w*im.naturalHeight/im.naturalWidth, m=16;
-    bx0=(cx-w/2-m)*ts; bx1=(cx+w/2+m)*ts; by0=(cy-h/2-m)*ts; by1=(cy+h/2+m)*ts; }
+    const cxm=back?CW-cx:cx; bx0=(cxm-w/2-m)*ts; bx1=(cxm+w/2+m)*ts; by0=(cy-h/2-m)*ts; by1=(cy+h/2+m)*ts; }
   else if(item.print==='none'){ bx1=0; by1=0; }
   const col=parseInt(item.color.slice(1),16), cr=col>>16, cg=(col>>8)&255, cb=col&255;
   const ink=parseInt(item.ink.slice(1),16), ir=ink>>16, ig=(ink>>8)&255, ib=ink&255;
@@ -766,36 +799,54 @@ const spot=new THREE.SpotLight(0xffe9cc,1.2,6,0.5,0.7,1.2); spot.position.set(0,
 function noiseCanvas(w,h,baseHex,amp,fn){ const c=document.createElement('canvas'); c.width=w;c.height=h; const g=c.getContext('2d'); g.fillStyle=baseHex; g.fillRect(0,0,w,h); if(fn) fn(g,w,h);
   const id=g.getImageData(0,0,w,h),d=id.data; for(let i=0;i<d.length;i+=4){const n=(Math.random()-.5)*amp; d[i]+=n; d[i+1]+=n; d[i+2]+=n;} g.putImageData(id,0,0); return c; }
 const wallTex=new THREE.CanvasTexture(noiseCanvas(512,512,'#cdc5b8',10,(g,w,h)=>{ for(let i=0;i<60;i++){ g.fillStyle=`rgba(${Math.random()<.5?255:90},${Math.random()<.5?240:80},220,.025)`; g.beginPath(); g.arc(Math.random()*w,Math.random()*h,20+Math.random()*80,0,7); g.fill(); } }));
-wallTex.wrapS=wallTex.wrapT=THREE.RepeatWrapping; wallTex.repeat.set(8,2); wallTex.encoding=THREE.sRGBEncoding;
-const wall=new THREE.Mesh(new THREE.PlaneGeometry(40,6),new THREE.MeshPhongMaterial({map:wallTex,specular:0x000000,shininess:1}));
-wall.position.set(0,3,-0.62); wall.receiveShadow=true; scene.add(wall);
+wallTex.wrapS=wallTex.wrapT=THREE.RepeatWrapping; wallTex.repeat.set(8,3.2); wallTex.encoding=THREE.sRGBEncoding;
+const LEVEL=3; // height of one storey
+const wall=new THREE.Mesh(new THREE.PlaneGeometry(40,9.6),new THREE.MeshPhongMaterial({map:wallTex,specular:0x000000,shininess:1}));
+wall.position.set(0,1.2,-0.62); wall.receiveShadow=true; scene.add(wall);
 const skirting=new THREE.Mesh(new THREE.BoxGeometry(40,.09,.02),new THREE.MeshStandardMaterial({color:0xe8e1d5,roughness:.6})); skirting.position.set(0,.045,-0.61); scene.add(skirting);
+{ const s2=skirting.clone(); s2.position.y-=LEVEL; scene.add(s2); }
 const floorTex=new THREE.CanvasTexture(noiseCanvas(512,512,'#8f6b4a',14,(g,w,h)=>{ const rows=8; for(let r=0;r<rows;r++){ const y=r*h/rows; let x=-Math.random()*200; while(x<w){ const L=160+Math.random()*220; g.fillStyle=`hsl(${26+Math.random()*6},${32+Math.random()*10}%,${32+Math.random()*10}%)`; g.fillRect(x,y,L,h/rows); g.fillStyle='rgba(0,0,0,.35)'; g.fillRect(x,y,2,h/rows); for(let k=0;k<6;k++){ g.fillStyle='rgba(0,0,0,.06)'; g.fillRect(x, y+Math.random()*h/rows, L, 1);} x+=L; } g.fillStyle='rgba(0,0,0,.4)'; g.fillRect(0,y,w,2);} }));
-floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping; floorTex.repeat.set(10,3); floorTex.encoding=THREE.sRGBEncoding; floorTex.anisotropy=ANISO;
-const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,10),new THREE.MeshPhongMaterial({map:floorTex,specular:0x2a2520,shininess:18}));
-floor.rotation.x=-Math.PI/2; floor.position.z=3; floor.receiveShadow=true; scene.add(floor);
+floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping; floorTex.repeat.set(10,.63); floorTex.encoding=THREE.sRGBEncoding; floorTex.anisotropy=ANISO;
+// the upper storey is a gallery along the wall; the camera rides down past its edge to the storey below
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,2.1),new THREE.MeshPhongMaterial({map:floorTex,specular:0x2a2520,shininess:18}));
+floor.rotation.x=-Math.PI/2; floor.position.z=.35; floor.receiveShadow=true; scene.add(floor);
+{ const slab=new THREE.Mesh(new THREE.BoxGeometry(40,.26,2.1),new THREE.MeshPhongMaterial({color:0x4a3f35,specular:0x000000,shininess:1})); slab.position.set(0,-.132,.35); scene.add(slab);
+  const t2=floorTex.clone(); t2.needsUpdate=true; t2.repeat.set(10,3);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(40,10),new THREE.MeshPhongMaterial({map:t2,specular:0x2a2520,shininess:18}));
+  ground.rotation.x=-Math.PI/2; ground.position.set(0,-LEVEL,3); ground.receiveShadow=true; scene.add(ground); }
+// the owner's snake-and-dagger sprayed on the wall behind each rail (paint only, see tools/graffiti.py)
+function graffiti(x,y,hgt){ const img=PHOTOS && PHOTOS.graffiti; if(!img) return;
+  const t=new THREE.Texture(img); t.needsUpdate=true; t.anisotropy=ANISO;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(hgt*img.naturalWidth/img.naturalHeight,hgt),
+    new THREE.MeshBasicMaterial({color:0x100e0d,map:t,transparent:true,opacity:.84,depthWrite:false,toneMapped:false,fog:false})); // white paint picture x near-black; its transparency is the paint
+  m.position.set(x,y,-0.614); m.renderOrder=1; scene.add(m); }
 
 /* ------------------------------------------------------------------ rack layout */
 const RAIL_Y=1.74, HOOK=0.105, S=0.6/CW;
 const SPACING=0.12, GAP=0.43, CAT_GAP=0.32, YAW_SIDE=1.22;
+const railY=r=>RAIL_Y-r*LEVEL;
 function catOf(f){ // continuous category coordinate at focus f
-  const i0=clamp(Math.floor(f),0,N-1), i1=clamp(i0+1,0,N-1), t=clamp(f-i0,0,1);
+  const i0=clamp(Math.floor(f),LO,HI), i1=clamp(i0+1,LO,HI), t=clamp(f-i0,0,1);
   return ITEMS[i0].cat*(1-t)+ITEMS[i1].cat*t;
 }
-function baseX(i){ return i*SPACING + ITEMS[i].cat*CAT_GAP; }
+function baseX(i){ const k=RK[ITEMS[i].rack]; return (i-k.lo)*SPACING + (ITEMS[i].cat-k.cat0)*CAT_GAP; }
 function spread(d){ const a=Math.abs(d), t=a<1? a*(2-a) : 1; return Math.sign(d)*GAP*t; }
-function camXFor(f){ return f*SPACING + catOf(f)*CAT_GAP; }
+function camXFor(f){ return (f-LO)*SPACING + (catOf(f)-RK[R].cat0)*CAT_GAP; }
 
 const chrome=new THREE.MeshStandardMaterial({color:0xd9d9db,metalness:1,roughness:.16});
 const darkMetal=new THREE.MeshStandardMaterial({color:0x2b2a28,metalness:.6,roughness:.45});
-const railX0=baseX(0)-GAP-0.45, railX1=baseX(N-1)+GAP+0.45, railLen=railX1-railX0;
-const rack=new THREE.Group(); scene.add(rack);
-const rail=new THREE.Mesh(new THREE.CylinderGeometry(.0135,.0135,railLen,24),chrome); rail.rotation.z=Math.PI/2; rail.position.set((railX0+railX1)/2,RAIL_Y,0); rail.castShadow=true; rack.add(rail);
-[railX0,railX1].forEach(x=>{
-  const up=new THREE.Mesh(new THREE.CylinderGeometry(.017,.017,RAIL_Y+.03,20),chrome); up.position.set(x,(RAIL_Y+.03)/2+.05,0); up.castShadow=true; rack.add(up);
-  const cap=new THREE.Mesh(new THREE.SphereGeometry(.024,20,12),chrome); cap.position.set(x,RAIL_Y+.07,0); rack.add(cap);
-  const foot=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,.5,16),chrome); foot.rotation.x=Math.PI/2; foot.position.set(x,.05,0); foot.castShadow=true; rack.add(foot);
-  [-.24,.24].forEach(z=>{ const w=new THREE.Mesh(new THREE.CylinderGeometry(.032,.032,.022,20),darkMetal); w.rotation.z=Math.PI/2; w.position.set(x,.032,z); w.castShadow=true; rack.add(w); });
+RK.forEach((k,r)=>{
+  const y0=-r*LEVEL, railX0=baseX(k.lo)-GAP-0.45, railX1=baseX(k.hi)+GAP+0.45, railLen=railX1-railX0;
+  k.mid=(railX0+railX1)/2;
+  const rack=new THREE.Group(); rack.position.y=y0; scene.add(rack);
+  const rail=new THREE.Mesh(new THREE.CylinderGeometry(.0135,.0135,railLen,24),chrome); rail.rotation.z=Math.PI/2; rail.position.set(k.mid,RAIL_Y,0); rail.castShadow=true; rack.add(rail);
+  [railX0,railX1].forEach(x=>{
+    const up=new THREE.Mesh(new THREE.CylinderGeometry(.017,.017,RAIL_Y+.03,20),chrome); up.position.set(x,(RAIL_Y+.03)/2+.05,0); up.castShadow=true; rack.add(up);
+    const cap=new THREE.Mesh(new THREE.SphereGeometry(.024,20,12),chrome); cap.position.set(x,RAIL_Y+.07,0); rack.add(cap);
+    const foot=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,.5,16),chrome); foot.rotation.x=Math.PI/2; foot.position.set(x,.05,0); foot.castShadow=true; rack.add(foot);
+    [-.24,.24].forEach(z=>{ const w=new THREE.Mesh(new THREE.CylinderGeometry(.032,.032,.022,20),darkMetal); w.rotation.z=Math.PI/2; w.position.set(x,.032,z); w.castShadow=true; rack.add(w); });
+  });
+  graffiti(k.mid, y0+1.3, 2.0);
 });
 
 /* hanger geometry (shared) */
@@ -813,6 +864,7 @@ const CLEAR=16, BAR_R=.0075;
 const fitCache={};
 function fitHanger(type,cvs,key){
   if(fitCache[key]) return fitCache[key];
+  if(CLIPPED[type]){ const YB=20, wb=126; return fitCache[key]={at:()=>YB, wb, yc:YB}; } // a straight bar just above the waistband
   // the lowest shoulder edge of front and back, left and right: the bar has to stay under all of them
   const low=(a,b)=> isNaN(a)? b : isNaN(b)? a : Math.max(a,b);
   const top=new Float32Array(CW).fill(NaN);
@@ -837,6 +889,7 @@ function barGeo(fit,key){
   return barCache[key]=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),90,BAR_R,10,false);
 }
 const barCap=new THREE.SphereGeometry(BAR_R,12,8);
+const clipGeo=new THREE.BoxGeometry(.02,.044,.05);
 const ferrule=new THREE.CylinderGeometry(.006,.006,.018,12);
 
 /* garment meshes */
@@ -918,6 +971,7 @@ ITEMS.forEach((item,i)=>{
   const front=garmentGeo(item,1,key&&fc,key,fit,dist), back=garmentGeo(item,-1,key&&fc,key,fit,dist);
   const ft=new THREE.CanvasTexture(fc), bt=new THREE.CanvasTexture(bc);
   [ft,bt].forEach(t=>{t.encoding=THREE.sRGBEncoding; t.anisotropy=ANISO;});
+  const sc=SCALE[item.type]||1, clip=CLIPPED[item.type];
   const U={uBend:{value:new THREE.Vector2()}, uTwist:{value:0}, uTop:{value:(CH/2-fit.yc)*S}};
   // photos are shown as photographed (no 3D lighting or tone mapping); drawn fallback keeps the lit cloth
   const mk=(map,side)=> bendable(key ? new THREE.MeshBasicMaterial({map,alphaTest:.5,alphaToCoverage:true,side,toneMapped:false})
@@ -927,14 +981,15 @@ ITEMS.forEach((item,i)=>{
   // both layers are drawn from both sides: at an angle you look into the garment, not through it
   const matF=mk(ft,key?THREE.DoubleSide:THREE.FrontSide), matB=mk(bt,key?THREE.DoubleSide:THREE.BackSide);
   // the bar's centre hangs from the hook; the garment hangs from the bar
-  const g=new THREE.Group(); g.position.y=-HOOK-.004-(CH/2-fit.yc)*S; spin.add(g);
-  const bar=new THREE.Mesh(barGeo(fit,fkey),wood); bar.castShadow=true; g.add(bar);
-  [-1,1].forEach(sd=>{ const cap=new THREE.Mesh(barCap,wood); cap.position.set(sd*fit.wb*S,(CH/2-fit.at(fit.wb))*S,0); g.add(cap); });
+  const g=new THREE.Group(); g.position.y=-HOOK-.004-(CH/2-fit.yc)*S*sc; g.scale.setScalar(sc); spin.add(g);
+  const bar=new THREE.Mesh(barGeo(fit,fkey),clip?chrome:wood); bar.castShadow=true; g.add(bar);
+  if(clip) [-1,1].forEach(sd=>{ const c=new THREE.Mesh(clipGeo,darkMetal); c.position.set(sd*92*S,(CH/2-36)*S,0); c.castShadow=true; g.add(c); }); // the two clips that grip the waistband
+  [-1,1].forEach(sd=>{ const cap=new THREE.Mesh(barCap,clip?chrome:wood); cap.position.set(sd*fit.wb*S,(CH/2-fit.at(fit.wb))*S,0); g.add(cap); });
   const mF=new THREE.Mesh(front.geo,matF), mB=new THREE.Mesh(back.geo,matB);
   mF.customDepthMaterial=mkDepth(ft); mB.customDepthMaterial=mkDepth(bt);
   mF.castShadow=true; // front and back share one outline: one of them is enough for the shadow
   [mF,mB].forEach(m=>{m.receiveShadow=true; m.userData.item=i; m.userData.masks=front.masks; g.add(m);});
-  hangables.push(makePhysics({kind:'garment', i, item, pivot, swing, spin, meshes:[mF,mB], tex:[ft,bt], U, L:.38, carried:false, mode:'rail', path:null, userYaw:0, spinHeld:false,
+  hangables.push(makePhysics({kind:'garment', i, item, pivot, swing, spin, meshes:[mF,mB], tex:[ft,bt], U, L:clip?.5:.38, hang:HANG[item.type]||.37, size:(item.type==='pants'?1.3:item.type==='shorts'?.72:1), carried:false, mode:'rail', path:null, userYaw:0, spinHeld:false,
     bx:0,vbx:0,bz:0,vbz:0,tw:0,vtw:0}));
 });
 
@@ -961,8 +1016,8 @@ CATS.forEach((cat,ci)=>{
 function sharpen(h){ const it=h.item; if(!it.lo) return false; it.lo=false;
   const fc=photoTexture(it,PHOTOS[it.type+'Front'],false,TS_HI), bc=photoTexture(it,PHOTOS[it.type+'Back'],true,TS_HI);
   h.tex[0].image=fc; h.tex[1].image=bc; h.tex[0].needsUpdate=h.tex[1].needsUpdate=true; it.frontCanvas=fc; return true; }
-function sharpenNext(){ const c=clamp(Math.round(f),0,N-1); let best=null, bd=1e9;
-  for(let i=0;i<N;i++){ const h=hangables[i]; if(h.item.lo && Math.abs(i-c)<bd){ bd=Math.abs(i-c); best=h; } }
+function sharpenNext(){ const c=clamp(Math.round(f),LO,HI); let best=null, bd=1e9;
+  for(let i=0;i<N;i++){ const h=hangables[i], d=Math.abs(i-c)+(h.item.rack===R?0:100); if(h.item.lo && d<bd){ bd=d; best=h; } }
   return best ? sharpen(best) : false; }
 
 /* ------------------------------------------------------------------ state & targets */
@@ -970,6 +1025,7 @@ let f=-1.2, fV=0, fT=3; // continuous focus index; start off-screen and glide in
 let dragging=false, carried=-1;
 let last=performance.now(), running=false, calm=0, awakeUntil=0, slow=0, slowSum=0, warm=0, sharpTick=0; // drawing loop state (see frame())
 const STILL=/[?&]still\b/.test(location.search);
+let lev=0, levV=0, levT=0, vdrag=false; // which storey the camera is at (0 = upper rail), continuous while it rides
 let night=0, nightT=0; // 0 = shop lights on, 1 = night window with one spotlight
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const camPos=new THREE.Vector3(camXFor(fT),1.3,1.9), camLook=new THREE.Vector3(camXFor(fT),1.22,0);
@@ -980,23 +1036,23 @@ const holdTmp=new THREE.Vector3();
 let holdBox=null, lookDrop=0; // on a phone: the free band between the header and the tag, and how far the view is tilted down
 function measureHold(){ holdBox = innerWidth<=720 ? {top:document.querySelector('header').offsetHeight, bot:sheet.offsetTop} : null; }
 const halfFov=()=>Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
-function holdPoint(out){
-  let nx=-0.28, ny=0.06, dist=1.34; // NDC of garment centre, distance from the camera
+function holdPoint(out,h){
+  let nx=-0.28, ny=0.06, dist=1.34*(h.size>1?1.48:1); // NDC of garment centre, distance from the camera
   if(holdBox){ const band=Math.max(140,holdBox.bot-holdBox.top);
     nx=0; ny=1-(holdBox.top+holdBox.bot)/innerHeight; // centre of the band
-    dist=clamp(CH*S*innerHeight/(2*halfFov()*band*.9), 1.3, camDist-.12); } // as large as fits there, never behind the rail
+    dist=clamp(CH*S*h.size*innerHeight/(2*halfFov()*band*.9), 1.3, camDist+(h.size>1?.22:-.12)); } // long trousers may hang a little behind the rail line to fit // as large as fits there, never behind the rail
   out.set(nx,ny,0.5).unproject(camera).sub(camera.position).normalize();
-  out.multiplyScalar(dist).add(camera.position); out.y += 0.37; // pivot is above the garment centre
+  out.multiplyScalar(dist).add(camera.position); out.y += h.hang; // pivot is above the garment centre
   return out;
 }
 function computeTargets(){
-  const fc=clamp(f,-.6,N-.4);
+  const fa=clamp(f,LO-.6,HI+.4);
   for(const h of hangables){
     if(h.kind==='garment'){
-      const d=h.i-fc;
-      h.tgt.set(baseX(h.i)+spread(d), RAIL_Y, 0);
+      const r=h.item.rack, d=h.i-(r===R? fa : RK[r].f); // the other rail stays as it was left
+      h.tgt.set(baseX(h.i)+spread(d), railY(r), 0);
       h.tYaw=-clamp(d,-1,1)*YAW_SIDE*(Math.abs(d)<1?Math.sqrt(Math.abs(d)):1)*1;
-      if(h.carried){ holdPoint(h.tgt); const dx=camera.position.x-h.tgt.x, dz=camera.position.z-h.tgt.z; h.tYaw=Math.atan2(dx,dz)+h.userYaw;
+      if(h.carried){ holdPoint(h.tgt,h); const dx=camera.position.x-h.tgt.x, dz=camera.position.z-h.tgt.z; h.tYaw=Math.atan2(dx,dz)+h.userYaw;
         if(h.mode==='held' && !reduce){ // a hand never holds perfectly still
           h.tgt.x+=Math.sin(clock*.9)*.004; h.tgt.y+=Math.sin(clock*1.3+1)*.003; h.tYaw+=Math.sin(clock*.6)*.025; }
         if(h.path) h.tYaw+=Math.sin(Math.PI*h.path.e)*.22; } // the garment turns a little while it is carried over
@@ -1004,9 +1060,9 @@ function computeTargets(){
     }
   }
   for(const dv of dividers){
-    const a=dv.first>0? hangables[dv.first-1] : null, b=hangables[dv.first];
+    const b=hangables[dv.first], a=dv.first>RK[b.item.rack].lo? hangables[dv.first-1] : null;
     const bx=b.tgt.x, ax=a? a.tgt.x : bx-0.5;
-    dv.tgt.set(a? (ax+bx)/2 : bx-0.32, RAIL_Y, 0);
+    dv.tgt.set(a? (ax+bx)/2 : bx-0.32, railY(b.item.rack), 0);
     dv.tYaw = a ? (a.tYaw+b.tYaw)/2 : b.tYaw;
   }
 }
@@ -1058,10 +1114,11 @@ function step(dt){
   separate();
 }
 // Garments on the rail can't pass through each other: a garment that turns needs room, so it pushes its neighbours along the rail.
-const HALF_W={tee:.25,tank:.155,hoodie:.2};
+const HALF_W={tee:.25,tank:.155,hoodie:.2,pants:.2,shorts:.2};
 function separate(){
   let a=null;
   for(let i=0;i<N;i++){ const b=hangables[i]; if(b.carried||b.path) continue;
+    if(a && a.item.rack!==b.item.rack) a=null;
     if(a){ const A=a.yaw, B=b.yaw, wa=HALF_W[a.item.type], wb=HALF_W[b.item.type];
       // side by side they need their full footprint; turned the same way they can overlap like roof tiles
       let need=wa*Math.abs(Math.cos(A))+wb*Math.abs(Math.cos(B))+.03;
@@ -1100,7 +1157,9 @@ function layoutCamera(){
 layoutCamera();
 const railTmp=new THREE.Vector3(), hookTmp=new THREE.Vector3();
 function updateCamera(dt){
-  const cx=camXFor(clamp(f,-.6,N-.4));
+  const cx=camXFor(clamp(f,LO-.6,HI+.4));
+  if(!vdrag){ if(reduce){ lev=levT; levV=0; } else { const kk=30; levV+=(kk*(levT-lev)-2*Math.sqrt(kk)*.9*levV)*dt; lev+=levV*dt; if(Math.abs(levT-lev)<.0005 && Math.abs(levV)<.002){ lev=levT; levV=0; } } }
+  const yo=-lev*LEVEL;
   parallax.x+=(parallax.tx-parallax.x)*Math.min(1,dt*3); parallax.y+=(parallax.ty-parallax.y)*Math.min(1,dt*3);
   const k=Math.min(1,dt*6);
   camLook.x+=(cx-camLook.x)*k;
@@ -1108,13 +1167,13 @@ function updateCamera(dt){
   camPos.x+=(tx-camPos.x)*k; camPos.y+=(ty-camPos.y)*k; camPos.z+=(tz-camPos.z)*k;
   // phone, garment in hand: tilt the view down until the rail sits where the held hook is, so the garment comes forward instead of climbing
   if(holdBox && carried>=0){ const h=hangables[carried], wpp=2*halfFov()*camDist/innerHeight;
-    railTmp.set(camLook.x,RAIL_Y,0).project(camera); hookTmp.set(h.tgt.x,h.tgt.y,h.tgt.z).project(camera);
+    railTmp.set(camLook.x,railY(h.item.rack),0).project(camera); hookTmp.set(h.tgt.x,h.tgt.y,h.tgt.z).project(camera);
     lookDrop=clamp(lookDrop+(hookTmp.y-railTmp.y)*innerHeight/2*wpp*Math.min(1,dt*5),0,.6); }
   else lookDrop+=(0-lookDrop)*k;
-  camera.position.copy(camPos); camera.lookAt(camLook.x+parallax.x*.03, 1.24+(innerWidth<=720?.08:0)-lookDrop, 0); camera.updateMatrixWorld();
-  key.position.set(camLook.x+.75,3.3,3.6); key.target.position.set(camLook.x,1.1,0); // fairly frontal: each garment's shadow falls close behind it
-  fill.position.set(camLook.x-2.5,1.6,2); fill.target.position.set(camLook.x,1.2,0);
-  spot.position.set(camLook.x,3.1,1.3); spot.target.position.set(camLook.x,1.2,0);
+  camera.position.copy(camPos); camera.position.y+=yo; camera.lookAt(camLook.x+parallax.x*.03, 1.24+(innerWidth<=720?.08:0)-lookDrop+yo, 0); camera.updateMatrixWorld();
+  key.position.set(camLook.x+.75,3.3+yo,3.6); key.target.position.set(camLook.x,1.1+yo,0); // fairly frontal: each garment's shadow falls close behind it
+  fill.position.set(camLook.x-2.5,1.6+yo,2); fill.target.position.set(camLook.x,1.2+yo,0);
+  spot.position.set(camLook.x,3.1+yo,1.3); spot.target.position.set(camLook.x,1.2+yo,0);
   if(night!==nightT || !lit){ night = reduce||Math.abs(nightT-night)<.004 ? nightT : night+(nightT-night)*Math.min(1,dt*3.5); light(night); }
 }
 const DAY=new THREE.Color(WALL), NIGHT=new THREE.Color(0x151416); let lit=false;
@@ -1138,7 +1197,7 @@ const pxPerItem=()=>Math.max(70, innerHeight*0.16);
 let down=null, lastMove=null, hoverI=-1;
 canvasEl.addEventListener('pointerdown',e=>{
   canvasEl.setPointerCapture(e.pointerId);
-  down={x:e.clientX,y:e.clientY,t:performance.now(),f0:f,moved:false,id:e.pointerId,yaw0: carried>=0?hangables[carried].userYaw:0, w:0};
+  down={x:e.clientX,y:e.clientY,t:performance.now(),f0:f,lev0:lev,vert:false,moved:false,id:e.pointerId,yaw0: carried>=0?hangables[carried].userYaw:0, w:0};
   lastMove={x:e.clientX,t:performance.now(),v:0};
   dismissHint(); hideTip();
 });
@@ -1147,14 +1206,19 @@ canvasEl.addEventListener('pointermove',e=>{
   parallax.tx=((e.clientX-r.left)/r.width-.5)*2; parallax.ty=-((e.clientY-r.top)/r.height-.5)*2;
   const now=performance.now();
   if(down){
-    const dx=e.clientX-down.x;
-    if(!down.moved && Math.abs(dx)>6){ down.moved=true; if(carried<0){ dragging=true; canvasEl.classList.add('grabbing'); } }
-    if(down.moved){
+    const dx=e.clientX-down.x, dy=e.clientY-down.y;
+    if(!down.moved){
+      if(carried<0 && Math.abs(dy)>10 && Math.abs(dy)>Math.abs(dx)*1.2){ down.moved=true; down.vert=true; vdrag=true; canvasEl.classList.add('grabbing'); }
+      else if(Math.abs(dx)>6){ down.moved=true; if(carried<0){ dragging=true; canvasEl.classList.add('grabbing'); } }
+    }
+    if(down.vert){ // the room follows the finger; past the ends it resists
+      let v=down.lev0-dy/(innerHeight*.8); const top=RACKS.length-1; if(v<0) v*=.3; if(v>top) v=top+(v-top)*.3; lev=v; levV=0; }
+    else if(down.moved){
       if(carried>=0){ const h=hangables[carried], ny=down.yaw0+dx*0.0125, dtm=Math.max(8,now-lastMove.t)/1000;
         down.w=down.w*.5+((ny-h.userYaw)/dtm)*.5; h.userYaw=ny; h.spinHeld=true; }
       else {
         let raw=down.f0-dx/pxPerItem();
-        if(raw<0) raw=raw*.35; if(raw>N-1) raw=N-1+(raw-(N-1))*.35;
+        if(raw<LO) raw=LO+(raw-LO)*.35; if(raw>HI) raw=HI+(raw-HI)*.35;
         const dtm=Math.max(1,now-lastMove.t); const inst=(raw-f)/(dtm/1000);
         fV=fV*.6+inst*.4; f=raw; fT=f;
       }
@@ -1175,11 +1239,13 @@ function hover(){ const e=hov; hov=null; if(down || carried>=0) return;
 function endPointer(e){
   if(!down) return;
   const wasMoved=down.moved;
+  if(down.vert){ vdrag=false; canvasEl.classList.remove('grabbing'); // a third of the way is enough to carry on to the other rail
+    const d=lev-down.lev0, to=clamp(Math.round(down.lev0)+(d>.3?1:d<-.3?-1:0),0,RACKS.length-1); down=null; if(to!==R) setRack(to); else levT=R; return; }
   if(carried>=0 && wasMoved){ const h=hangables[carried]; // let go: it keeps turning a little, then settles on its front or back
     if(performance.now()-lastMove.t>90) down.w=0;
     h.userYaw=Math.round((h.userYaw+clamp(down.w,-10,10)*.18)/Math.PI)*Math.PI; h.spinHeld=false; }
   if(dragging){ dragging=false; canvasEl.classList.remove('grabbing');
-    const proj=f+fV*0.28; fT=clamp(Math.round(proj),0,N-1); }
+    const proj=f+fV*0.28; fT=clamp(Math.round(proj),LO,HI); }
   else if(!wasMoved){
     const i=pick(e.clientX,e.clientY);
     if(carried<0 && i>=0){
@@ -1198,8 +1264,8 @@ canvasEl.addEventListener('wheel',e=>{
   const d=(Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY)*(e.deltaMode===1?16:1);
   if(carried>=0){ const h=hangables[carried]; h.userYaw+=d*0.004; h.spinHeld=true;
     clearTimeout(wheelTimer); wheelTimer=setTimeout(()=>{ h.userYaw=Math.round(h.userYaw/Math.PI)*Math.PI; h.spinHeld=false; },160); return; }
-  fT=clamp(fT+d*0.0045,-.25,N-.75);
-  clearTimeout(wheelTimer); wheelTimer=setTimeout(()=>{ fT=clamp(Math.round(fT),0,N-1); },140);
+  fT=clamp(fT+d*0.0045,LO-.25,HI+.25);
+  clearTimeout(wheelTimer); wheelTimer=setTimeout(()=>{ fT=clamp(Math.round(fT),LO,HI); },140);
 },{passive:false});
 addEventListener('keydown',e=>{
   const tg=e.target, tn=tg && tg.tagName;
@@ -1210,9 +1276,14 @@ addEventListener('keydown',e=>{
   if(tn==='BUTTON' && (e.key==='Enter'||e.key===' ')) return;
   if(e.key==='ArrowRight'){ if(carried>=0) flip(); else go(1); e.preventDefault(); }
   if(e.key==='ArrowLeft'){ if(carried>=0) flip(); else go(-1); e.preventDefault(); }
+  if((e.key==='ArrowDown'||e.key==='PageDown') && carried<0){ setRack(Math.min(R+1,RACKS.length-1)); e.preventDefault(); }
+  if((e.key==='ArrowUp'||e.key==='PageUp') && carried<0){ setRack(Math.max(R-1,0)); e.preventDefault(); }
   if((e.key==='Enter'||e.key===' ') && carried<0){ takeOff(Math.round(fT)); document.getElementById('closeTag').focus({preventScroll:true}); e.preventDefault(); }
 });
-function go(dir){ fT=clamp(Math.round(fT)+dir,0,N-1); dismissHint(); }
+function go(dir){ fT=clamp(Math.round(fT)+dir,LO,HI); dismissHint(); }
+// ride to another rail; it is found as it was left, or with garment i in front
+function setRack(r,i){ if(r!==R){ RK[R].f=clamp(Math.round(fT),LO,HI); R=r; LO=RK[r].lo; HI=RK[r].hi; f=fT=RK[r].f; fV=0; }
+  if(i!=null){ fT=i; } levT=R; syncRack(); dismissHint(); wake(); }
 
 /* ------------------------------------------------------------------ UI */
 const $=id=>document.getElementById(id);
@@ -1232,34 +1303,42 @@ $('prev').onclick=()=>go(-1);
 $('next').onclick=()=>go(1);
 $('take').onclick=()=>takeOff(Math.round(fT));
 
+let lastFocus=-1, lastCat=-1, lastBack=null;
+const LIFT_ICON=['<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M8.5 4 3 7l2 4 2.5-1.2V20h9V9.8L19 11l2-4-5.5-3a3.5 3.5 0 0 1-7 0z"/></svg>','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M6.5 3.5h11l1.5 17h-5L12 9.5 10 20.5H5z"/><path d="M6.3 6.5h11.4"/></svg>'];
 // category tabs
 const tabsEl=$('tabs');
 CATS.forEach((c,ci)=>{ const b=el('button',{id:'tab-'+c.key,type:'button'}); const inCat=ITEMS.filter(i=>i.cat===ci);
   b.append(c.name, el('span',{text:inCat.length}));
-  b.onclick=()=>{ if(carried>=0) putBack(); fT=inCat[Math.floor((inCat.length-1)/2)].idx; dismissHint(); };
+  b.onclick=()=>{ if(carried>=0) putBack(); setRack(c.rack, inCat[Math.floor((inCat.length-1)/2)].idx); };
   tabsEl.appendChild(b); });
 
 // the rack in miniature: one chip per garment, in rail order; click or drag along it to go there
-const railEl=$('minirail'), chips=[];
-ITEMS.forEach((it,i)=>{ if(i && it.cat!==ITEMS[i-1].cat) railEl.append(el('i'));
+const railEl=$('minirail'), chips=[], rows=RACKS.map((r,k)=>{ const d=el('div',{class:'mrow'}); railEl.append(d); return d; });
+ITEMS.forEach((it,i)=>{ const row=rows[it.rack]; if(i>RK[it.rack].lo && it.cat!==ITEMS[i-1].cat) row.append(el('i'));
   const b=el('button',{class:'chip',type:'button','aria-label':`${it.model}, ${it.colorName}`}); b.style.setProperty('--c',it.color);
-  b.onclick=()=>jump(i); chips.push(b); railEl.append(b); });
-function jump(i){ dismissHint(); if(carried>=0){ if(i!==carried) swapTo(i); } else fT=i; }
-function chipAt(x){ let best=0, bd=1e9; chips.forEach((c,i)=>{ const r=c.getBoundingClientRect(), d=Math.abs(x-(r.left+r.width/2)); if(d<bd){ bd=d; best=i; } }); return best; }
+  b.onclick=()=>jump(i); chips.push(b); row.append(b); });
+function jump(i){ dismissHint(); if(carried>=0){ if(i!==carried) swapTo(i); } else setRack(ITEMS[i].rack,i); }
+function chipAt(x,y){ let best=0, bd=1e9; chips.forEach((c,i)=>{ const r=c.getBoundingClientRect(), d=Math.abs(x-(r.left+r.width/2))+3*Math.max(0,Math.abs(y-(r.top+r.height/2))-r.height/2-3); if(d<bd){ bd=d; best=i; } }); return best; }
+// the lift: one stop per rail
+const liftEl=$('lift');
+RACKS.forEach((r,k)=>{ const b=el('button',{type:'button',id:'rack-'+k}); b.innerHTML=LIFT_ICON[k]; b.append(el('span',{text:r.name})); b.onclick=()=>{ if(carried>=0) putBack(); setRack(k); }; liftEl.append(b); });
+function syncRack(){ [...liftEl.children].forEach((b,k)=>b.setAttribute('aria-pressed',String(k===R)));
+  rows.forEach((d,k)=>d.classList.toggle('off',k!==R));
+  [...tabsEl.children].forEach((b,k)=>{ b.hidden=CATS[k].rack!==R; }); lastFocus=-1; lastCat=-1; }
 let scrubbing=false;
-railEl.addEventListener('pointerdown',e=>{ scrubbing=true; railEl.setPointerCapture(e.pointerId); jump(chipAt(e.clientX)); e.preventDefault(); });
-railEl.addEventListener('pointermove',e=>{ if(scrubbing && carried<0) fT=chipAt(e.clientX); });
+railEl.addEventListener('pointerdown',e=>{ scrubbing=true; railEl.setPointerCapture(e.pointerId); jump(chipAt(e.clientX,e.clientY)); e.preventDefault(); });
+railEl.addEventListener('pointermove',e=>{ if(scrubbing && carried<0){ const i=chipAt(e.clientX,e.clientY); if(ITEMS[i].rack===R) fT=i; } });
 railEl.addEventListener('pointerup',()=>{ scrubbing=false; });
 railEl.addEventListener('pointercancel',()=>{ scrubbing=false; });
 
+syncRack();
 const fName=$('fName'), fSub=$('fSub');
-let lastFocus=-1, lastCat=-1, lastBack=null;
 function updateUI(){
-  const i = carried>=0 ? carried : clamp(Math.round(f),0,N-1);
+  const i = carried>=0 ? carried : clamp(Math.round(f),LO,HI);
   if(i!==lastFocus){ lastFocus=i; const it=ITEMS[i];
     fName.textContent=it.model; fSub.innerHTML=`<b>${euro(it.price)}</b>&ensp;${it.colorName}`;
     chips.forEach((c,k)=>c.setAttribute('aria-current',String(k===i)));
-    $('prev').disabled=i===0; $('next').disabled=i===N-1; }
+    $('prev').disabled=i===LO; $('next').disabled=i===HI; }
   const c=ITEMS[i].cat; if(c!==lastCat){ lastCat=c; [...tabsEl.children].forEach((b,k)=>b.setAttribute('aria-pressed',String(k===c))); }
   if(carried>=0){ const back=Math.abs(Math.round(hangables[carried].userYaw/Math.PI))%2===1;
     if(back!==lastBack){ lastBack=back; $('viewFront').setAttribute('aria-pressed',String(!back)); $('viewBack').setAttribute('aria-pressed',String(back)); } }
@@ -1298,12 +1377,13 @@ function pickSize(s){ selSize=s; store.set('size',s); $('sSize').textContent=s;
 function setHash(it){ try{ history.replaceState(null,'', it ? '#'+it.id : location.pathname+location.search); }catch(e){} }
 function takeOff(i){
   if(i<0||i>=N||carried>=0) return;
+  if(ITEMS[i].rack!==R) setRack(ITEMS[i].rack,i);
   if(PHOTOS) sharpen(hangables[i]);
   carried=i; const h=hangables[i]; h.carried=true; h.userYaw=0; h.spinHeld=false; h.mode='off';
   // lift the hook off the rail first, then bring it forward and down to the viewer
   h.path={t:0, e:0, dur:reduce?.3:1.15, p0:new THREE.Vector3(h.x,h.y,h.z), c1:new THREE.Vector3(0,.17,.03), c2:new THREE.Vector3(0,.06,-.3)};
   fillSheet(i); setHash(ITEMS[i]); lastBack=null;
-  sheet.classList.add('open'); sheet.inert=false; dock.classList.add('away'); measureHold(); wake();
+  sheet.classList.add('open'); sheet.inert=false; dock.classList.add('away'); liftEl.classList.add('away'); measureHold(); wake();
   canvasEl.classList.remove('hovering'); hideTip(); hinted=true; hint.classList.add('gone');
 }
 function putBack(keepOpen){
@@ -1314,10 +1394,10 @@ function putBack(keepOpen){
   fT=carried; carried=-1;
   if(keepOpen) return;
   if(sheet.contains(document.activeElement)) $('take').focus({preventScroll:true});
-  sheet.classList.remove('open'); sheet.inert=true; dock.classList.remove('away'); setHash(null);
+  sheet.classList.remove('open'); sheet.inert=true; dock.classList.remove('away'); liftEl.classList.remove('away'); setHash(null);
 }
 // another colour or another garment while one is in your hand: this one goes back, that one comes off, the tag stays
-function swapTo(i){ putBack(true); fT=i; takeOff(i); }
+function swapTo(i){ putBack(true); setRack(ITEMS[i].rack,i); takeOff(i); }
 $('putBack').onclick=()=>putBack();
 $('closeTag').onclick=()=>putBack();
 
@@ -1364,7 +1444,7 @@ function openDrawer(tab){ drawerTab=tab; drawerOpen=true; drawerFrom=document.ac
   drawer.classList.add('open'); drawer.inert=false; scrim.classList.add('on'); hideTip(); toast.classList.remove('show'); $('closeDrawer').focus({preventScroll:true}); }
 function closeDrawer(){ drawerOpen=false; drawer.classList.remove('open'); drawer.inert=true; scrim.classList.remove('on');
   if(drawerFrom && drawerFrom.focus) drawerFrom.focus({preventScroll:true}); }
-function show(it){ closeDrawer(); if(carried===it.idx) return; if(carried>=0) swapTo(it.idx); else { fT=it.idx; takeOff(it.idx); } }
+function show(it){ closeDrawer(); if(carried===it.idx) return; if(carried>=0) swapTo(it.idx); else { setRack(it.rack,it.idx); takeOff(it.idx); } }
 function orderText(){ return ['Παραγγελία από την Κρεμάστρα', ...cart.map(l=>{ const it=byId(l.id); return `${l.qty} × ${it.model}, ${it.colorName}, ${l.size}: ${euro(l.qty*it.price)}`; }), `Σύνολο: ${euro(cartSum())}`].join('\n'); }
 function pic(it){ const t=thumb(it); return t ? el('img',{src:t,alt:'',width:46,height:58}) : el('div',{class:'ph'}); }
 function renderDrawer(){
@@ -1406,11 +1486,13 @@ $('rTabFav').onclick=()=>{ drawerTab='favs'; renderDrawer(); };
 syncCart(); syncFavs();
 
 /* size guide. Indicative measurements in cm (half chest, length); replace with the real ones per garment. */
-const GUIDE={ tee:[[49,66],[52,69],[55,72],[58,74],[61,76],[64,78]], hoodie:[[52,64],[55,67],[58,70],[61,72],[64,74],[67,76]], tank:[[44,66],[47,69],[50,72],[53,74],[56,76],[59,78]] };
+const GUIDE={ tee:[[49,66],[52,69],[55,72],[58,74],[61,76],[64,78]], hoodie:[[52,64],[55,67],[58,70],[61,72],[64,74],[67,76]], tank:[[44,66],[47,69],[50,72],[53,74],[56,76],[59,78]],
+  pants:[[34,98],[36,100],[38,102],[40,104],[43,106],[46,108]], shorts:[[34,46],[36,48],[38,50],[40,52],[43,54],[46,56]] };
 const guide=$('guide');
 function suggest(){ const hgt=+$('gH').value, w=+$('gW').value; if(!(hgt>=140 && hgt<=215 && w>=40 && w<=160)) return -1;
   let k = w<58?0 : w<68?1 : w<78?2 : w<88?3 : w<98?4 : 5; if(hgt>=190) k++; if(hgt<165) k--; return clamp(k,0,5); }
-function renderGuide(){ const it=ITEMS[carried>=0?carried:clamp(Math.round(f),0,N-1)], rec=suggest(), rows=$('gRows'); rows.textContent='';
+function renderGuide(){ const it=ITEMS[carried>=0?carried:clamp(Math.round(f),LO,HI)], rec=suggest(), rows=$('gRows'); rows.textContent='';
+  $('gCol').textContent=CLIPPED[it.type]?'Πλάτος μέσης':'Πλάτος στήθους';
   $('guideTitle').textContent=`Οδηγός μεγεθών, ${CATS[it.cat].name.toLowerCase()}`;
   GUIDE[it.type].forEach(([a,b],k)=>rows.append(el('tr',{class:k===rec?'rec':''},[el('td',{text:SIZES[k]}),el('td',{text:a+' cm'}),el('td',{text:b+' cm'})])));
   const out=$('gOut'); out.textContent='';
@@ -1444,13 +1526,13 @@ function dismissHint(){ if(hinted) return; hinted=true; setTimeout(()=>hint.clas
 
 // a link to one garment (#tee-mavro) opens the page with that garment in your hand
 (function(){ const it=byId(decodeURIComponent(location.hash.slice(1))); if(!it) return;
-  fT=it.idx; f=it.idx-1.2; computeTargets(); for(const h of hangables){ h.x=h.tgt.x; h.yaw=h.tYaw; } takeOff(it.idx); })();
+  setRack(it.rack,it.idx); lev=levT; f=it.idx-1.2; computeTargets(); for(const h of hangables){ h.x=h.tgt.x; h.yaw=h.tYaw; } takeOff(it.idx); })();
 
 addEventListener('resize',()=>{ renderer.setPixelRatio(pixelRatio()); renderer.setSize(innerWidth,innerHeight); layoutCamera(); measureHold(); wake(); });
 
 /* ------------------------------------------------------------------ loop */
 function moving(){
-  if(dragging || carried>=0 || Math.abs(fT-f)>.002 || Math.abs(fV)>.01 || night!==nightT) return true;
+  if(dragging || vdrag || lev!==levT || carried>=0 || Math.abs(fT-f)>.002 || Math.abs(fV)>.01 || night!==nightT) return true;
   if(Math.abs(parallax.tx-parallax.x)+Math.abs(parallax.ty-parallax.y)>.004 || Math.abs(lookDrop)>.002) return true;
   let d=0; // how far anything on the rail moved since the last frame
   for(const h of hangables){ if(h.path) return true;
@@ -1489,6 +1571,7 @@ setTimeout(()=>document.getElementById('loading').classList.add('done'),120);
 (function(){
   const SRC={teeFront:'img/tee-front.webp',teeBack:'img/tee-back.webp',tankFront:'img/tank-front.webp',tankBack:'img/tank-back.webp',
     hoodieFront:'img/hoodie-front.webp',hoodieBack:'img/hoodie-back.webp',artLogo:'img/art-logo.webp',artPanther:'img/art-panther.webp',
+    pantsFront:'img/pants-front.webp',pantsBack:'img/pants-back.webp',shortsFront:'img/shorts-front.webp',shortsBack:'img/shorts-back.webp',graffiti:'img/graffiti.webp',
     stathisFront:'img/stathis-front.webp',stathisBack:'img/stathis-back.webp'};
   const load=u=>new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=u; });
   let got=0; const total=Object.keys(SRC).length, bar=document.getElementById('loadBar');
